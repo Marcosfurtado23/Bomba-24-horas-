@@ -1,0 +1,68 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+             (
+               (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+                get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'journalist']) ||
+               (request.auth.token.email == 'marcossilva192024@gmail.com' && request.auth.token.email_verified == true)
+             );
+    }
+
+    function hasRequiredArticleFields() {
+      return request.resource.data.keys().hasAll(['title', 'summary', 'category', 'imageUrl', 'createdAt']);
+    }
+
+    function isValidArticle() {
+      return hasRequiredArticleFields() &&
+             request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() < 200 &&
+             request.resource.data.summary is string && request.resource.data.summary.size() > 0 && request.resource.data.summary.size() < 1000 &&
+             (!('content' in request.resource.data) || (request.resource.data.content is string && request.resource.data.content.size() < 50000)) &&
+             request.resource.data.category is string && request.resource.data.category.size() > 0 && request.resource.data.category.size() < 50 &&
+             request.resource.data.imageUrl is string && request.resource.data.imageUrl.size() > 0 && request.resource.data.imageUrl.size() < 1000 &&
+             request.resource.data.createdAt is string;
+    }
+
+    function hasRequiredVideoFields() {
+      return request.resource.data.keys().hasAll(['title', 'videoUrl', 'createdAt']);
+    }
+
+    function isValidVideo() {
+      return hasRequiredVideoFields() &&
+             request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() < 200 &&
+             request.resource.data.videoUrl is string && request.resource.data.videoUrl.size() > 0 && request.resource.data.videoUrl.size() < 1000 &&
+             request.resource.data.createdAt is string &&
+             (!('duration' in request.resource.data) || (request.resource.data.duration is string && request.resource.data.duration.size() < 20)) &&
+             (!('aspectRatio' in request.resource.data) || (request.resource.data.aspectRatio is string && request.resource.data.aspectRatio in ['16:9', '9:16', '1:1']));
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /articles/{articleId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidArticle();
+      allow update: if isAdmin() && isValidArticle();
+      allow delete: if isAdmin();
+    }
+
+    match /videos/{videoId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidVideo();
+      allow update: if isAdmin() && isValidVideo();
+      allow delete: if isAdmin();
+    }
+  }
+}

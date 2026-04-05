@@ -1,0 +1,57 @@
+{
+  "entities": {
+    "Article": {
+      "title": "Article",
+      "description": "A news article.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "The title of the article." },
+        "summary": { "type": "string", "description": "A short summary of the article." },
+        "content": { "type": "string", "description": "The full content of the article." },
+        "category": { "type": "string", "description": "The category of the article." },
+        "imageUrl": { "type": "string", "description": "The URL of the article's image." },
+        "createdAt": { "type": "string", "description": "The ISO string of the creation date." }
+      },
+      "required": ["title", "summary", "category", "imageUrl", "createdAt"]
+    },
+    "Video": {
+      "title": "Video",
+      "description": "A video article.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "The title of the video." },
+        "videoUrl": { "type": "string", "description": "The URL of the video." },
+        "duration": { "type": "string", "description": "The duration of the video." },
+        "aspectRatio": { "type": "string", "description": "The aspect ratio of the video." },
+        "createdAt": { "type": "string", "description": "The ISO string of the creation date." }
+      },
+      "required": ["title", "videoUrl", "createdAt"]
+    },
+    "User": {
+      "title": "User",
+      "description": "A registered user (admin or journalist).",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["admin", "journalist"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["email", "role"]
+    }
+  },
+  "firestore": {
+    "/articles/{articleId}": {
+      "schema": { "$ref": "#/entities/Article" },
+      "description": "Collection of news articles."
+    },
+    "/videos/{videoId}": {
+      "schema": { "$ref": "#/entities/Video" },
+      "description": "Collection of video articles."
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Collection of users and their roles."
+    }
+  }
+}
