@@ -35,6 +35,7 @@ export default function PublicSite() {
   
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [videos, setVideos] = useState<VideoArticle[]>([]);
+  const [initialLoad, setInitialLoad] = useState(true);
 
   const categories = ['Início', 'Política', 'Economia', 'Polícia', 'Esportes', 'Famosos'];
 
@@ -46,8 +47,10 @@ export default function PublicSite() {
         articlesData.push({ id: doc.id, ...doc.data() } as NewsArticle);
       });
       setArticles(articlesData);
+      setInitialLoad(false);
     }, (error) => {
       console.error("Error fetching articles:", error);
+      setInitialLoad(false);
     });
 
     const videosQuery = query(collection(db, 'videos'), orderBy('createdAt', 'desc'));
@@ -187,79 +190,96 @@ export default function PublicSite() {
           {/* Left Column - Main News (Spans 8 cols on large screens) */}
           <div className="lg:col-span-8 space-y-8">
             
-            {/* Hero Article */}
-            {heroArticle && (
-              <Link to={`/article/${heroArticle.id}`} className="block">
-                <article className="relative group overflow-hidden rounded-xl shadow-lg cursor-pointer">
-                  <div className="aspect-video w-full overflow-hidden">
-                    <img 
-                      src={heroArticle.imageUrl} 
-                      alt={heroArticle.title} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                      referrerPolicy="no-referrer"
-                    />
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col justify-end p-6 md:p-8">
-                    <span className="bg-red-600 text-white text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-sm w-max mb-3">{heroArticle.category}</span>
-                    <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-white leading-tight mb-3 group-hover:text-red-400 transition-colors">
-                      {heroArticle.title}
-                    </h1>
-                    <p className="text-gray-200 text-sm md:text-base line-clamp-2 mb-4 max-w-3xl">
-                      {heroArticle.summary}
-                    </p>
-                    <div className="flex items-center gap-4 text-gray-300 text-xs font-medium">
-                      <span className="flex items-center gap-1"><Clock size={14} /> Agora</span>
-                      <span className="flex items-center gap-1"><TrendingUp size={14} /> Em alta</span>
-                    </div>
-                  </div>
-                </article>
-              </Link>
-            )}
-
-            {/* Secondary News Grid */}
-            {secondaryArticles.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {secondaryArticles.map((article) => (
-                  <Link to={`/article/${article.id}`} key={article.id} className="block">
-                    <article className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow group cursor-pointer border border-gray-100 h-full">
-                      <div className="aspect-[16/9] overflow-hidden relative">
+            {initialLoad ? (
+              <div className="animate-pulse space-y-8">
+                <div className="aspect-video w-full bg-gray-200 rounded-xl"></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="aspect-[16/9] w-full bg-gray-200 rounded-xl"></div>
+                  <div className="aspect-[16/9] w-full bg-gray-200 rounded-xl"></div>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Hero Article */}
+                {heroArticle && (
+                  <Link to={`/article/${heroArticle.id}`} className="block">
+                    <article className="relative group overflow-hidden rounded-xl shadow-lg cursor-pointer">
+                      <div className="aspect-video w-full overflow-hidden">
                         <img 
-                          src={article.imageUrl} 
-                          alt={article.title} 
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          src={heroArticle.imageUrl} 
+                          alt={heroArticle.title} 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                           referrerPolicy="no-referrer"
                         />
-                        <div className="absolute top-3 left-3 bg-red-600 text-white text-xs font-bold uppercase px-2 py-1 rounded-sm">{article.category}</div>
                       </div>
-                      <div className="p-5">
-                        <h2 className="text-xl font-bold leading-tight mb-2 group-hover:text-red-600 transition-colors">{article.title}</h2>
-                        <p className="text-gray-600 text-sm line-clamp-2 mb-4">{article.summary}</p>
-                        <span className="text-gray-400 text-xs flex items-center gap-1"><Clock size={14} /> Recente</span>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col justify-end p-6 md:p-8">
+                        <span className="bg-red-600 text-white text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-sm w-max mb-3">{heroArticle.category}</span>
+                        <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-white leading-tight mb-3 group-hover:text-red-400 transition-colors">
+                          {heroArticle.title}
+                        </h1>
+                        <p className="text-gray-200 text-sm md:text-base line-clamp-2 mb-4 max-w-3xl">
+                          {heroArticle.summary}
+                        </p>
+                        <div className="flex items-center gap-4 text-gray-300 text-xs font-medium">
+                          <span className="flex items-center gap-1"><Clock size={14} /> Agora</span>
+                          <span className="flex items-center gap-1"><TrendingUp size={14} /> Em alta</span>
+                          {heroArticle.views && <span className="flex items-center gap-1 ml-2">{heroArticle.views} visualizações</span>}
+                        </div>
                       </div>
                     </article>
                   </Link>
-                ))}
-              </div>
-            )}
+                )}
 
-            {/* List News */}
-            {listArticles.length > 0 && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <div className="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
-                  <h3 className="text-2xl font-black uppercase text-gray-900 border-l-4 border-red-600 pl-3">Destaques</h3>
-                  <a href="#" className="text-red-600 text-sm font-bold hover:underline flex items-center">Ver tudo <ChevronRight size={16} /></a>
-                </div>
-                <div className="space-y-6">
-                  {listArticles.map((item) => (
-                    <Link to={`/article/${item.id}`} key={item.id} className="block">
-                      <article className="flex gap-4 group cursor-pointer">
-                        <div className="w-1/3 sm:w-1/4 aspect-video rounded-lg overflow-hidden shrink-0">
-                          <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" referrerPolicy="no-referrer" />
+                {/* Secondary News Grid */}
+                {secondaryArticles.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {secondaryArticles.map((article) => (
+                      <Link to={`/article/${article.id}`} key={article.id} className="block">
+                        <article className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow group cursor-pointer border border-gray-100 h-full">
+                          <div className="aspect-[16/9] overflow-hidden relative">
+                            <img 
+                              src={article.imageUrl} 
+                              alt={article.title} 
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                              referrerPolicy="no-referrer"
+                            />
+                            <div className="absolute top-3 left-3 bg-red-600 text-white text-xs font-bold uppercase px-2 py-1 rounded-sm">{article.category}</div>
+                          </div>
+                          <div className="p-5">
+                            <h2 className="text-xl font-bold leading-tight mb-2 group-hover:text-red-600 transition-colors">{article.title}</h2>
+                            <p className="text-gray-600 text-sm line-clamp-2 mb-4">{article.summary}</p>
+                            <div className="flex items-center justify-between text-gray-400 text-xs">
+                              <span className="flex items-center gap-1"><Clock size={14} /> Recente</span>
+                              {article.views && <span>{article.views} visualizações</span>}
+                            </div>
+                          </div>
+                        </article>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+
+                {/* List News */}
+                {listArticles.length > 0 && (
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <div className="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
+                      <h3 className="text-2xl font-black uppercase text-gray-900 border-l-4 border-red-600 pl-3">Destaques</h3>
+                      <a href="#" className="text-red-600 text-sm font-bold hover:underline flex items-center">Ver tudo <ChevronRight size={16} /></a>
+                    </div>
+                    <div className="space-y-6">
+                      {listArticles.map((item) => (
+                        <Link to={`/article/${item.id}`} key={item.id} className="block">
+                          <article className="flex gap-4 group cursor-pointer">
+                            <div className="w-1/3 sm:w-1/4 aspect-video rounded-lg overflow-hidden shrink-0">
+                              <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" referrerPolicy="no-referrer" />
                         </div>
-                        <div className="flex flex-col justify-center">
+                        <div className="flex flex-col justify-center w-full">
                           <span className="text-red-600 text-xs font-bold uppercase mb-1">{item.category}</span>
                           <h4 className="text-base sm:text-lg font-bold leading-tight mb-2 group-hover:text-red-600 transition-colors">{item.title}</h4>
-                          <span className="text-gray-400 text-xs flex items-center gap-1"><Clock size={14} /> Hoje</span>
+                          <div className="flex items-center justify-between text-gray-400 text-xs mt-auto">
+                            <span className="flex items-center gap-1"><Clock size={14} /> Hoje</span>
+                            {item.views && <span>{item.views} visualizações</span>}
+                          </div>
                         </div>
                       </article>
                     </Link>
@@ -334,6 +354,8 @@ export default function PublicSite() {
                   </div>
                 )}
               </div>
+            )}
+            </>
             )}
           </div>
 

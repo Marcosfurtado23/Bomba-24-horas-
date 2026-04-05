@@ -6,6 +6,7 @@ export interface NewsArticle {
   category: string;
   imageUrl: string;
   createdAt: string;
+  views?: number;
 }
 
 export interface VideoArticle {
@@ -15,4 +16,5 @@ export interface VideoArticle {
   duration?: string;
   aspectRatio?: '16:9' | '9:16' | '1:1';
   createdAt: string;
+  views?: number;
 }

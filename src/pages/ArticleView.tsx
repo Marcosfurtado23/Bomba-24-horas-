@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
 import { db } from '../firebase';
 import { NewsArticle } from '../types';
-import { ArrowLeft, Clock } from 'lucide-react';
+import { ArrowLeft, Clock, Eye } from 'lucide-react';
 
 export default function ArticleView() {
   const { id } = useParams();
@@ -17,7 +17,15 @@ export default function ArticleView() {
         const docRef = doc(db, 'articles', id);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          setArticle({ id: docSnap.id, ...docSnap.data() } as NewsArticle);
+          const data = docSnap.data() as NewsArticle;
+          setArticle({ id: docSnap.id, ...data });
+          
+          // Increment views
+          try {
+            await updateDoc(docRef, { views: increment(1) });
+          } catch (e) {
+            console.error("Failed to increment views", e);
+          }
         }
       } catch (error) {
         console.error("Error fetching article:", error);
@@ -67,7 +75,7 @@ export default function ArticleView() {
             />
           </div>
           <div className="p-6 md:p-10">
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex flex-wrap items-center gap-3 mb-4">
               <span className="bg-red-600 text-white text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-sm">
                 {article.category}
               </span>
@@ -80,6 +88,10 @@ export default function ArticleView() {
                   hour: '2-digit',
                   minute: '2-digit'
                 })}
+              </span>
+              <span className="text-gray-500 text-sm flex items-center gap-1 ml-auto">
+                <Eye size={16} />
+                {article.views ? article.views + 1 : 1} visualizações
               </span>
             </div>
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 leading-tight mb-6">

@@ -16,7 +16,7 @@ service cloud.firestore {
              (
                (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
                 get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'journalist']) ||
-               (request.auth.token.email == 'marcossilva192024@gmail.com' && request.auth.token.email_verified == true)
+               (request.auth.token.email in ['marcossilva192024@gmail.com', 'marcosveo71@gmail.com'])
              );
     }
 
@@ -47,6 +47,13 @@ service cloud.firestore {
              (!('aspectRatio' in request.resource.data) || (request.resource.data.aspectRatio is string && request.resource.data.aspectRatio in ['16:9', '9:16', '1:1']));
     }
 
+    function isIncrementingViews() {
+      let onlyViewsChanged = request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views']);
+      let currentViews = ('views' in resource.data) ? resource.data.views : 0;
+      let newViews = request.resource.data.views;
+      return onlyViewsChanged && newViews == currentViews + 1;
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -54,14 +61,14 @@ service cloud.firestore {
     match /articles/{articleId} {
       allow read: if true;
       allow create: if isAdmin() && isValidArticle();
-      allow update: if isAdmin() && isValidArticle();
+      allow update: if (isAdmin() && isValidArticle()) || isIncrementingViews();
       allow delete: if isAdmin();
     }
 
     match /videos/{videoId} {
       allow read: if true;
       allow create: if isAdmin() && isValidVideo();
-      allow update: if isAdmin() && isValidVideo();
+      allow update: if (isAdmin() && isValidVideo()) || isIncrementingViews();
       allow delete: if isAdmin();
     }
   }
