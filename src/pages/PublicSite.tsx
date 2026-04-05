@@ -371,41 +371,48 @@ export default function PublicSite() {
               </div>
               
               <div className="space-y-6 relative before:absolute before:inset-0 before:ml-2 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-200 before:to-transparent">
-                {[
-                  { time: "14:05", text: "Polícia isola área central após denúncia de pacote suspeito." },
-                  { time: "13:42", text: "Presidente cancela viagem internacional de última hora." },
-                  { time: "13:15", text: "Acidente envolvendo três caminhões bloqueia rodovia." },
-                  { time: "12:50", text: "Bolsa de valores suspende negociações após forte queda." },
-                  { time: "12:30", text: "Hospital confirma estado grave de vítima de atentado." },
-                  { time: "11:45", text: "Sindicato anuncia greve geral dos transportes para amanhã." }
-                ].map((item, i) => (
-                  <div key={i} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                {articles.slice(0, 6).map((article, i) => (
+                  <div key={article.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
                     <div className="flex items-center justify-center w-5 h-5 rounded-full border-2 border-white bg-red-100 text-red-600 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10 ml-1 md:ml-0">
                       <div className="w-1.5 h-1.5 bg-red-600 rounded-full"></div>
                     </div>
-                    <div className="w-[calc(100%-2.5rem)] md:w-[calc(50%-1.5rem)] p-3 rounded-lg bg-gray-50 border border-gray-100 group-hover:border-red-200 group-hover:bg-red-50 transition-colors cursor-pointer">
+                    <Link to={`/article/${article.id}`} className="w-[calc(100%-2.5rem)] md:w-[calc(50%-1.5rem)] p-3 rounded-lg bg-gray-50 border border-gray-100 group-hover:border-red-200 group-hover:bg-red-50 transition-colors cursor-pointer block">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="font-bold text-red-600 text-xs">{item.time}</span>
+                        <span className="font-bold text-red-600 text-xs">{new Date(article.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
-                      <p className="text-sm text-gray-700 font-medium leading-snug">{item.text}</p>
-                    </div>
+                      <p className="text-sm text-gray-700 font-medium leading-snug line-clamp-2">{article.title}</p>
+                    </Link>
                   </div>
                 ))}
               </div>
-              <button 
-                onClick={handleLoadMore}
-                disabled={isLoadingMore}
-                className="w-full mt-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {isLoadingMore ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-gray-400 border-t-gray-800 rounded-full animate-spin"></div>
-                    Carregando...
-                  </>
-                ) : (
-                  "Carregar mais atualizações"
-                )}
-              </button>
+            </div>
+
+            {/* Most Read News */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-blue-600"></div>
+              <div className="flex items-center gap-2 mb-6">
+                <TrendingUp className="text-blue-600" size={24} />
+                <h3 className="text-xl font-black uppercase text-gray-900">Mais Lidas</h3>
+              </div>
+              
+              <div className="space-y-4">
+                {[...articles].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5).map((article, index) => (
+                  <Link key={article.id} to={`/article/${article.id}`} className="flex gap-4 group items-center">
+                    <span className="text-4xl font-black text-gray-200 group-hover:text-blue-100 transition-colors">
+                      {index + 1}
+                    </span>
+                    <div>
+                      <h4 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 text-sm">
+                        {article.title}
+                      </h4>
+                      <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                        <Eye size={12} />
+                        <span>{article.views || 1} visualizações</span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
             </div>
 
             {/* Newsletter/Alerts */}
@@ -434,25 +441,6 @@ export default function PublicSite() {
                     </>
                   )}
                 </form>
-              </div>
-            </div>
-
-            {/* Most Read */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-xl font-black uppercase text-gray-900 border-l-4 border-red-600 pl-3 mb-6">Mais Lidas</h3>
-              <div className="space-y-4">
-                {[
-                  "Vaza áudio comprometedor de candidato à prefeitura",
-                  "Descubra o que acontece com seu corpo ao beber café em jejum",
-                  "Novo golpe do Pix faz vítimas em todo o país; veja como se proteger",
-                  "Loteria acumula e prêmio chega a R$ 150 milhões",
-                  "Vídeo de briga no trânsito viraliza nas redes sociais"
-                ].map((title, i) => (
-                  <a href="#" key={i} className="flex gap-4 group items-start">
-                    <span className="text-3xl font-black text-gray-200 group-hover:text-red-200 transition-colors leading-none">0{i+1}</span>
-                    <h4 className="text-sm font-bold text-gray-800 group-hover:text-red-600 transition-colors leading-tight pt-1">{title}</h4>
-                  </a>
-                ))}
               </div>
             </div>
 

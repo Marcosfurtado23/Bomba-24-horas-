@@ -9,6 +9,7 @@ export default function ArticleView() {
   const { id } = useParams();
   const [article, setArticle] = useState<NewsArticle | null>(null);
   const [loading, setLoading] = useState(true);
+  const hasIncrementedView = React.useRef(false);
 
   useEffect(() => {
     const fetchArticle = async () => {
@@ -20,11 +21,14 @@ export default function ArticleView() {
           const data = docSnap.data() as NewsArticle;
           setArticle({ id: docSnap.id, ...data });
           
-          // Increment views
-          try {
-            await updateDoc(docRef, { views: increment(1) });
-          } catch (e) {
-            console.error("Failed to increment views", e);
+          // Increment views only once per mount
+          if (!hasIncrementedView.current) {
+            hasIncrementedView.current = true;
+            try {
+              await updateDoc(docRef, { views: increment(1) });
+            } catch (e) {
+              console.error("Failed to increment views", e);
+            }
           }
         }
       } catch (error) {

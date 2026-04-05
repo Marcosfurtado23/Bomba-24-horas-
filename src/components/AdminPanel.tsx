@@ -5,6 +5,7 @@ import { ArrowLeft, Save, Trash2, PlusCircle, Image as ImageIcon, Video, FileUp,
 interface AdminPanelProps {
   onBack: () => void;
   onAddArticle: (article: Omit<NewsArticle, 'id' | 'createdAt'>) => void;
+  onEditArticle?: (id: string, article: Partial<NewsArticle>) => void;
   articles: NewsArticle[];
   onDeleteArticle: (id: string) => void;
   videos: VideoArticle[];
@@ -12,7 +13,7 @@ interface AdminPanelProps {
   onDeleteVideo: (id: string) => void;
 }
 
-export default function AdminPanel({ onBack, onAddArticle, articles, onDeleteArticle, videos, onAddVideo, onDeleteVideo }: AdminPanelProps) {
+export default function AdminPanel({ onBack, onAddArticle, onEditArticle, articles, onDeleteArticle, videos, onAddVideo, onDeleteVideo }: AdminPanelProps) {
   const [activeTab, setActiveTab] = useState<'news' | 'videos'>('news');
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -44,37 +45,80 @@ export default function AdminPanel({ onBack, onAddArticle, articles, onDeleteArt
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      setImageUrl(url);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          setImageUrl(dataUrl);
+        };
+        img.src = reader.result as string;
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      setVideoUrl(url);
-      setVideoDuration('00:00'); // Simulated duration
-      
-      // Auto-detect aspect ratio
-      const video = document.createElement('video');
-      video.src = url;
-      video.onloadedmetadata = () => {
-        const ratio = video.videoWidth / video.videoHeight;
-        if (ratio > 1.2) {
-          setVideoAspectRatio('16:9');
-        } else if (ratio < 0.8) {
-          setVideoAspectRatio('9:16');
-        } else {
-          setVideoAspectRatio('1:1');
-        }
-      };
+      alert("Upload de vídeo diretamente para o banco de dados não é suportado devido ao limite de tamanho. Por favor, use uma URL de um vídeo hospedado (ex: YouTube, Vimeo, ou outro servidor).");
+      if (videoInputRef.current) {
+        videoInputRef.current.value = '';
+      }
     }
   };
 
+  const [editingArticleId, setEditingArticleId] = useState<string | null>(null);
+
   const handleNewsSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onAddArticle({ title, summary, content, category, imageUrl });
+    if (editingArticleId && onEditArticle) {
+      onEditArticle(editingArticleId, { title, summary, content, category, imageUrl });
+      setEditingArticleId(null);
+    } else {
+      onAddArticle({ title, summary, content, category, imageUrl });
+    }
+    setTitle('');
+    setSummary('');
+    setContent('');
+    setImageUrl('');
+    if (imageInputRef.current) imageInputRef.current.value = '';
+  };
+
+  const handleEditClick = (article: NewsArticle) => {
+    setEditingArticleId(article.id);
+    setTitle(article.title);
+    setSummary(article.summary);
+    setContent(article.content || '');
+    setCategory(article.category);
+    setImageUrl(article.imageUrl);
+    setActiveTab('news');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const cancelEdit = () => {
+    setEditingArticleId(null);
     setTitle('');
     setSummary('');
     setContent('');
@@ -138,7 +182,7 @@ export default function AdminPanel({ onBack, onAddArticle, articles, onDeleteArt
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-24">
               <h2 className="text-xl font-black uppercase mb-6 flex items-center gap-2 border-l-4 border-red-600 pl-3">
-                <PlusCircle className="text-red-600" /> {activeTab === 'news' ? 'Nova Notícia' : 'Novo Vídeo'}
+                <PlusCircle className="text-red-600" /> {activeTab === 'news' ? (editingArticleId ? 'Editar Notícia' : 'Nova Notícia') : 'Novo Vídeo'}
               </h2>
               
               {activeTab === 'news' ? (
@@ -225,13 +269,24 @@ export default function AdminPanel({ onBack, onAddArticle, articles, onDeleteArt
                       </div>
                     )}
                   </div>
-                  <button 
-                    type="submit"
-                    disabled={!title || !summary || !imageUrl}
-                    className="w-full py-3 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-black uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2 mt-6 shadow-md"
-                  >
-                    <Save size={20} /> Publicar Notícia
-                  </button>
+                  <div className="flex gap-2 mt-6">
+                    <button 
+                      type="submit"
+                      disabled={!title || !summary || !imageUrl}
+                      className="flex-1 py-3 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-black uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md"
+                    >
+                      <Save size={20} /> {editingArticleId ? 'Salvar Edição' : 'Publicar Notícia'}
+                    </button>
+                    {editingArticleId && (
+                      <button 
+                        type="button"
+                        onClick={cancelEdit}
+                        className="px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center shadow-md"
+                      >
+                        Cancelar
+                      </button>
+                    )}
+                  </div>
                 </form>
               ) : (
                 <form onSubmit={handleVideoSubmit} className="space-y-4">
@@ -335,13 +390,22 @@ export default function AdminPanel({ onBack, onAddArticle, articles, onDeleteArt
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start mb-1">
                           <span className="text-xs font-bold text-red-600 uppercase bg-red-50 px-2 py-0.5 rounded">{article.category}</span>
-                          <button 
-                            onClick={() => onDeleteArticle(article.id)}
-                            className="text-gray-400 hover:text-red-600 transition-colors p-1"
-                            title="Excluir notícia"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button 
+                              onClick={() => handleEditClick(article)}
+                              className="text-gray-400 hover:text-blue-600 transition-colors p-1"
+                              title="Editar notícia"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                            </button>
+                            <button 
+                              onClick={() => onDeleteArticle(article.id)}
+                              className="text-gray-400 hover:text-red-600 transition-colors p-1"
+                              title="Excluir notícia"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </div>
                         <h4 className="font-bold text-gray-900 truncate mb-1" title={article.title}>{article.title}</h4>
                         <p className="text-sm text-gray-500 line-clamp-2">{article.summary}</p>

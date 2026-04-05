@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { collection, onSnapshot, addDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, deleteDoc, updateDoc, doc, query, orderBy } from 'firebase/firestore';
 import AdminPanel from '../components/AdminPanel';
 import { NewsArticle, VideoArticle } from '../types';
 
@@ -75,6 +75,15 @@ export default function Dashboard() {
     }
   };
 
+  const handleEditArticle = async (id: string, updatedData: Partial<NewsArticle>) => {
+    try {
+      await updateDoc(doc(db, 'articles', id), updatedData);
+    } catch (error) {
+      console.error("Error updating article:", error);
+      alert("Erro ao atualizar notícia.");
+    }
+  };
+
   const handleDeleteArticle = async (id: string) => {
     try {
       await deleteDoc(doc(db, 'articles', id));
@@ -119,6 +128,7 @@ export default function Dashboard() {
       articles={articles}
       videos={videos}
       onAddArticle={handleAddArticle}
+      onEditArticle={handleEditArticle}
       onDeleteArticle={handleDeleteArticle}
       onAddVideo={handleAddVideo}
       onDeleteVideo={handleDeleteVideo}
