@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Flame, Menu, Search, Bell, ChevronRight, Clock, AlertTriangle, TrendingUp, X, PlayCircle, CheckCircle } from 'lucide-react';
+import { Flame, Menu, Search, Bell, ChevronRight, Clock, AlertTriangle, TrendingUp, X, PlayCircle, CheckCircle, Eye } from 'lucide-react';
 import { NewsArticle, VideoArticle } from '../types';
 import { db } from '../firebase';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
