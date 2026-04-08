@@ -1,27 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, increment, collection, query, orderBy, limit, getDocs, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { NewsArticle } from '../types';
-import { ArrowLeft, Clock, Eye } from 'lucide-react';
+import { ArrowLeft, Clock, Eye, ChevronRight } from 'lucide-react';
 
 export default function ArticleView() {
   const { id } = useParams();
   const [article, setArticle] = useState<NewsArticle | null>(null);
+  const [relatedArticles, setRelatedArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const hasIncrementedView = React.useRef(false);
 
   useEffect(() => {
-    const fetchArticle = async () => {
+    const fetchArticleAndRelated = async () => {
       if (!id) return;
+      
+      setLoading(true);
+      hasIncrementedView.current = false; // Reset for new article
+      
       try {
         const docRef = doc(db, 'articles', id);
         const docSnap = await getDoc(docRef);
+        
         if (docSnap.exists()) {
           const data = docSnap.data() as NewsArticle;
           setArticle({ id: docSnap.id, ...data });
           
-          // Increment views only once per mount
+          // Increment views only once per mount/article change
           if (!hasIncrementedView.current) {
             hasIncrementedView.current = true;
             try {
@@ -30,6 +36,47 @@ export default function ArticleView() {
               console.error("Failed to increment views", e);
             }
           }
+
+          // Fetch related articles (same category, excluding current)
+          try {
+            const relatedQuery = query(
+              collection(db, 'articles'),
+              where('category', '==', data.category),
+              orderBy('createdAt', 'desc'),
+              limit(4)
+            );
+            
+            const relatedSnap = await getDocs(relatedQuery);
+            const relatedData: NewsArticle[] = [];
+            
+            relatedSnap.forEach((doc) => {
+              if (doc.id !== id) {
+                relatedData.push({ id: doc.id, ...doc.data() } as NewsArticle);
+              }
+            });
+            
+            // If we don't have enough related by category, fetch latest overall
+            if (relatedData.length < 3) {
+              const latestQuery = query(
+                collection(db, 'articles'),
+                orderBy('createdAt', 'desc'),
+                limit(5)
+              );
+              const latestSnap = await getDocs(latestQuery);
+              
+              latestSnap.forEach((doc) => {
+                if (doc.id !== id && !relatedData.find(a => a.id === doc.id)) {
+                  relatedData.push({ id: doc.id, ...doc.data() } as NewsArticle);
+                }
+              });
+            }
+            
+            setRelatedArticles(relatedData.slice(0, 3)); // Keep max 3
+          } catch (e) {
+            console.error("Failed to fetch related articles", e);
+          }
+        } else {
+          setArticle(null);
         }
       } catch (error) {
         console.error("Error fetching article:", error);
@@ -37,7 +84,11 @@ export default function ArticleView() {
         setLoading(false);
       }
     };
-    fetchArticle();
+    
+    fetchArticleAndRelated();
+    
+    // Scroll to top when ID changes
+    window.scrollTo(0, 0);
   }, [id]);
 
   if (loading) {
@@ -153,6 +204,45 @@ export default function ArticleView() {
             </div>
           </div>
         </article>
+
+        {/* Related Articles Section */}
+        {relatedArticles.length > 0 && (
+          <div className="mt-12">
+            <h2 className="text-2xl font-black text-gray-900 mb-6 uppercase tracking-tight border-l-4 border-red-600 pl-3">
+              Notícias Relacionadas
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {relatedArticles.map((related) => (
+                <Link 
+                  key={related.id} 
+                  to={`/article/${related.id}`}
+                  className="group bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all flex flex-col"
+                >
+                  <div className="aspect-video w-full overflow-hidden bg-gray-100">
+                    <img 
+                      src={related.imageUrl} 
+                      alt={related.title} 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                  <div className="p-4 flex flex-col flex-grow">
+                    <span className="text-red-600 text-xs font-bold uppercase tracking-wider mb-2">
+                      {related.category}
+                    </span>
+                    <h3 className="font-bold text-gray-900 leading-snug mb-3 group-hover:text-red-600 transition-colors line-clamp-3">
+                      {related.title}
+                    </h3>
+                    <div className="mt-auto flex items-center text-xs text-gray-500 gap-1">
+                      <Clock size={12} />
+                      {new Date(related.createdAt).toLocaleDateString('pt-BR')}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

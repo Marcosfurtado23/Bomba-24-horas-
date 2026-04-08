@@ -75,6 +75,21 @@ export default function Dashboard() {
     }
   };
 
+  const handleAddBulkArticles = async (articles: Omit<NewsArticle, 'id' | 'createdAt'>[]) => {
+    try {
+      // Using Promise.all for simplicity. For very large batches, consider writeBatch.
+      await Promise.all(articles.map(article => 
+        addDoc(collection(db, 'articles'), {
+          ...article,
+          createdAt: new Date().toISOString()
+        })
+      ));
+    } catch (error) {
+      console.error("Error adding bulk articles:", error);
+      throw error;
+    }
+  };
+
   const handleEditArticle = async (id: string, updatedData: Partial<NewsArticle>) => {
     try {
       await updateDoc(doc(db, 'articles', id), updatedData);
@@ -128,6 +143,7 @@ export default function Dashboard() {
       articles={articles}
       videos={videos}
       onAddArticle={handleAddArticle}
+      onAddBulkArticles={handleAddBulkArticles}
       onEditArticle={handleEditArticle}
       onDeleteArticle={handleDeleteArticle}
       onAddVideo={handleAddVideo}

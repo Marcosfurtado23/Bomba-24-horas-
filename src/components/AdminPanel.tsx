@@ -5,6 +5,7 @@ import { ArrowLeft, Save, Trash2, PlusCircle, Image as ImageIcon, Video, FileUp,
 interface AdminPanelProps {
   onBack: () => void;
   onAddArticle: (article: Omit<NewsArticle, 'id' | 'createdAt'>) => void;
+  onAddBulkArticles?: (articles: Omit<NewsArticle, 'id' | 'createdAt'>[]) => Promise<void>;
   onEditArticle?: (id: string, article: Partial<NewsArticle>) => void;
   articles: NewsArticle[];
   onDeleteArticle: (id: string) => void;
@@ -13,7 +14,7 @@ interface AdminPanelProps {
   onDeleteVideo: (id: string) => void;
 }
 
-export default function AdminPanel({ onBack, onAddArticle, onEditArticle, articles, onDeleteArticle, videos, onAddVideo, onDeleteVideo }: AdminPanelProps) {
+export default function AdminPanel({ onBack, onAddArticle, onAddBulkArticles, onEditArticle, articles, onDeleteArticle, videos, onAddVideo, onDeleteVideo }: AdminPanelProps) {
   const [activeTab, setActiveTab] = useState<'news' | 'videos'>('news');
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -87,6 +88,69 @@ export default function AdminPanel({ onBack, onAddArticle, onEditArticle, articl
         videoInputRef.current.value = '';
       }
     }
+  };
+
+  const bulkInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingBulk, setIsUploadingBulk] = useState(false);
+
+  const handleBulkUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const content = event.target?.result as string;
+        const data = JSON.parse(content);
+
+        if (!Array.isArray(data)) {
+          alert("O arquivo JSON deve conter um array de notícias.");
+          return;
+        }
+
+        setIsUploadingBulk(true);
+        const validArticles = data.filter(item => 
+          item.title && item.summary && item.content && item.imageUrl && item.category
+        );
+
+        if (validArticles.length === 0) {
+          alert("Nenhuma notícia válida encontrada no arquivo. Verifique os campos obrigatórios (title, summary, content, imageUrl, category).");
+          return;
+        }
+
+        if (onAddBulkArticles) {
+          await onAddBulkArticles(validArticles.map(item => ({
+            title: item.title,
+            summary: item.summary,
+            content: item.content,
+            imageUrl: item.imageUrl,
+            category: item.category,
+            views: 0
+          })));
+          alert(`${validArticles.length} notícias importadas com sucesso!`);
+        } else {
+          // Fallback if onAddBulkArticles is not provided
+          for (const item of validArticles) {
+            onAddArticle({
+              title: item.title,
+              summary: item.summary,
+              content: item.content,
+              imageUrl: item.imageUrl,
+              category: item.category,
+              views: 0
+            });
+          }
+          alert(`${validArticles.length} notícias importadas com sucesso!`);
+        }
+      } catch (error) {
+        console.error("Erro ao importar:", error);
+        alert("Erro ao processar o arquivo. Verifique se é um JSON válido.");
+      } finally {
+        setIsUploadingBulk(false);
+        if (bulkInputRef.current) bulkInputRef.current.value = '';
+      }
+    };
+    reader.readAsText(file);
   };
 
   const [editingArticleId, setEditingArticleId] = useState<string | null>(null);
@@ -181,9 +245,32 @@ export default function AdminPanel({ onBack, onAddArticle, onEditArticle, articl
           
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-24">
-              <h2 className="text-xl font-black uppercase mb-6 flex items-center gap-2 border-l-4 border-red-600 pl-3">
-                <PlusCircle className="text-red-600" /> {activeTab === 'news' ? (editingArticleId ? 'Editar Notícia' : 'Nova Notícia') : 'Novo Vídeo'}
-              </h2>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-black uppercase flex items-center gap-2 border-l-4 border-red-600 pl-3">
+                  <PlusCircle className="text-red-600" /> {activeTab === 'news' ? (editingArticleId ? 'Editar Notícia' : 'Nova Notícia') : 'Novo Vídeo'}
+                </h2>
+                {activeTab === 'news' && !editingArticleId && (
+                  <div>
+                    <input 
+                      type="file" 
+                      accept=".json" 
+                      ref={bulkInputRef}
+                      onChange={handleBulkUpload}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => bulkInputRef.current?.click()}
+                      disabled={isUploadingBulk}
+                      className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-1.5 px-3 rounded flex items-center gap-1 transition-colors disabled:opacity-50"
+                      title="Importar notícias em massa (JSON)"
+                    >
+                      <FileUp size={16} />
+                      {isUploadingBulk ? 'Importando...' : 'Massa'}
+                    </button>
+                  </div>
+                )}
+              </div>
               
               {activeTab === 'news' ? (
                 <form onSubmit={handleNewsSubmit} className="space-y-4">
