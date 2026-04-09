@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { doc, getDoc, updateDoc, increment, collection, query, orderBy, limit, getDocs, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { NewsArticle } from '../types';
-import { ArrowLeft, Clock, Eye, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Clock, ChevronRight } from 'lucide-react';
 
 export default function ArticleView() {
   const { id } = useParams();
@@ -124,7 +124,7 @@ export default function ArticleView() {
           <div className="aspect-video w-full overflow-hidden bg-gray-100">
             <img 
               src={article.imageUrl} 
-              alt={article.title} 
+              alt="" 
               className="w-full h-full object-cover" 
               referrerPolicy="no-referrer" 
             />
@@ -143,10 +143,6 @@ export default function ArticleView() {
                   hour: '2-digit',
                   minute: '2-digit'
                 })}
-              </span>
-              <span className="text-gray-500 text-sm flex items-center gap-1 ml-auto">
-                <Eye size={16} />
-                {article.views ? article.views + 1 : 1} visualizações
               </span>
             </div>
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 leading-tight mb-6">
@@ -221,7 +217,7 @@ export default function ArticleView() {
                   <div className="aspect-video w-full overflow-hidden bg-gray-100">
                     <img 
                       src={related.imageUrl} 
-                      alt={related.title} 
+                      alt="" 
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                       referrerPolicy="no-referrer"
                     />

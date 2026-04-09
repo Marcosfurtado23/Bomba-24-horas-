@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Flame, Menu, Search, Bell, ChevronRight, Clock, AlertTriangle, TrendingUp, X, PlayCircle, CheckCircle, Eye } from 'lucide-react';
+import { Flame, Menu, Search, Bell, ChevronRight, Clock, AlertTriangle, TrendingUp, X, PlayCircle, CheckCircle } from 'lucide-react';
 import { NewsArticle, VideoArticle } from '../types';
 import { db } from '../firebase';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
@@ -207,7 +207,7 @@ export default function PublicSite() {
                       <div className="aspect-video w-full overflow-hidden">
                         <img 
                           src={heroArticle.imageUrl} 
-                          alt={heroArticle.title} 
+                          alt="" 
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                           referrerPolicy="no-referrer"
                         />
@@ -223,7 +223,6 @@ export default function PublicSite() {
                         <div className="flex items-center gap-4 text-gray-300 text-xs font-medium">
                           <span className="flex items-center gap-1"><Clock size={14} /> Agora</span>
                           <span className="flex items-center gap-1"><TrendingUp size={14} /> Em alta</span>
-                          {heroArticle.views && <span className="flex items-center gap-1 ml-2">{heroArticle.views} visualizações</span>}
                         </div>
                       </div>
                     </article>
@@ -239,7 +238,7 @@ export default function PublicSite() {
                           <div className="aspect-[16/9] overflow-hidden relative">
                             <img 
                               src={article.imageUrl} 
-                              alt={article.title} 
+                              alt="" 
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                               referrerPolicy="no-referrer"
                             />
@@ -250,7 +249,6 @@ export default function PublicSite() {
                             <p className="text-gray-600 text-sm line-clamp-2 mb-4">{article.summary}</p>
                             <div className="flex items-center justify-between text-gray-400 text-xs">
                               <span className="flex items-center gap-1"><Clock size={14} /> Recente</span>
-                              {article.views && <span>{article.views} visualizações</span>}
                             </div>
                           </div>
                         </article>
@@ -271,14 +269,13 @@ export default function PublicSite() {
                         <Link to={`/article/${item.id}`} key={item.id} className="block">
                           <article className="flex gap-4 group cursor-pointer">
                             <div className="w-1/3 sm:w-1/4 aspect-video rounded-lg overflow-hidden shrink-0">
-                              <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" referrerPolicy="no-referrer" />
+                              <img src={item.imageUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" referrerPolicy="no-referrer" />
                         </div>
                         <div className="flex flex-col justify-center w-full">
                           <span className="text-red-600 text-xs font-bold uppercase mb-1">{item.category}</span>
                           <h4 className="text-base sm:text-lg font-bold leading-tight mb-2 group-hover:text-red-600 transition-colors">{item.title}</h4>
                           <div className="flex items-center justify-between text-gray-400 text-xs mt-auto">
                             <span className="flex items-center gap-1"><Clock size={14} /> Hoje</span>
-                            {item.views && <span>{item.views} visualizações</span>}
                           </div>
                         </div>
                       </article>
@@ -405,10 +402,6 @@ export default function PublicSite() {
                       <h4 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 text-sm">
                         {article.title}
                       </h4>
-                      <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                        <Eye size={12} />
-                        <span>{article.views || 1} visualizações</span>
-                      </div>
                     </div>
                   </Link>
                 ))}

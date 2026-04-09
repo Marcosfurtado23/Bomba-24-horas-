@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { NewsArticle, VideoArticle } from '../types';
-import { ArrowLeft, Save, Trash2, PlusCircle, Image as ImageIcon, Video, FileUp, Sun, Moon } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, PlusCircle, Image as ImageIcon, Video, FileUp, Sun, Moon, Eye } from 'lucide-react';
 
 interface AdminPanelProps {
   onBack: () => void;
@@ -28,11 +28,9 @@ export default function AdminPanel({ onBack, onAddArticle, onAddBulkArticles, on
   const isDay = currentTime.getHours() >= 6 && currentTime.getHours() < 18;
 
   // News State
-  const [title, setTitle] = useState('');
-  const [summary, setSummary] = useState('');
-  const [content, setContent] = useState('');
-  const [category, setCategory] = useState('Urgente');
-  const [imageUrl, setImageUrl] = useState('');
+  const [bulkQuantity, setBulkQuantity] = useState(1);
+  const [bulkArticles, setBulkArticles] = useState([{title: '', summary: '', content: '', category: 'Urgente', imageUrl: ''}]);
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
   
   // Video State
   const [videoTitle, setVideoTitle] = useState('');
@@ -43,9 +41,29 @@ export default function AdminPanel({ onBack, onAddArticle, onAddBulkArticles, on
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const qty = parseInt(e.target.value);
+    setBulkQuantity(qty);
+    setBulkArticles(prev => {
+      const newArr = [...prev];
+      while (newArr.length < qty) {
+        newArr.push({title: '', summary: '', content: '', category: 'Urgente', imageUrl: ''});
+      }
+      return newArr.slice(0, qty);
+    });
+  };
+
+  const updateBulkArticle = (index: number, field: string, value: string) => {
+    setBulkArticles(prev => {
+      const newArr = [...prev];
+      newArr[index] = { ...newArr[index], [field]: value };
+      return newArr;
+    });
+  };
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (file && uploadingIndex !== null) {
       const reader = new FileReader();
       reader.onloadend = () => {
         const img = new Image();
@@ -72,7 +90,9 @@ export default function AdminPanel({ onBack, onAddArticle, onAddBulkArticles, on
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
           const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-          setImageUrl(dataUrl);
+          updateBulkArticle(uploadingIndex, 'imageUrl', dataUrl);
+          setUploadingIndex(null);
+          if (imageInputRef.current) imageInputRef.current.value = '';
         };
         img.src = reader.result as string;
       };
@@ -90,104 +110,50 @@ export default function AdminPanel({ onBack, onAddArticle, onAddBulkArticles, on
     }
   };
 
-  const bulkInputRef = useRef<HTMLInputElement>(null);
-  const [isUploadingBulk, setIsUploadingBulk] = useState(false);
-
-  const handleBulkUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      try {
-        const content = event.target?.result as string;
-        const data = JSON.parse(content);
-
-        if (!Array.isArray(data)) {
-          alert("O arquivo JSON deve conter um array de notícias.");
-          return;
-        }
-
-        setIsUploadingBulk(true);
-        const validArticles = data.filter(item => 
-          item.title && item.summary && item.content && item.imageUrl && item.category
-        );
-
-        if (validArticles.length === 0) {
-          alert("Nenhuma notícia válida encontrada no arquivo. Verifique os campos obrigatórios (title, summary, content, imageUrl, category).");
-          return;
-        }
-
-        if (onAddBulkArticles) {
-          await onAddBulkArticles(validArticles.map(item => ({
-            title: item.title,
-            summary: item.summary,
-            content: item.content,
-            imageUrl: item.imageUrl,
-            category: item.category,
-            views: 0
-          })));
-          alert(`${validArticles.length} notícias importadas com sucesso!`);
-        } else {
-          // Fallback if onAddBulkArticles is not provided
-          for (const item of validArticles) {
-            onAddArticle({
-              title: item.title,
-              summary: item.summary,
-              content: item.content,
-              imageUrl: item.imageUrl,
-              category: item.category,
-              views: 0
-            });
-          }
-          alert(`${validArticles.length} notícias importadas com sucesso!`);
-        }
-      } catch (error) {
-        console.error("Erro ao importar:", error);
-        alert("Erro ao processar o arquivo. Verifique se é um JSON válido.");
-      } finally {
-        setIsUploadingBulk(false);
-        if (bulkInputRef.current) bulkInputRef.current.value = '';
-      }
-    };
-    reader.readAsText(file);
-  };
-
   const [editingArticleId, setEditingArticleId] = useState<string | null>(null);
 
-  const handleNewsSubmit = (e: React.FormEvent) => {
+  const handleNewsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editingArticleId && onEditArticle) {
-      onEditArticle(editingArticleId, { title, summary, content, category, imageUrl });
+      onEditArticle(editingArticleId, bulkArticles[0]);
       setEditingArticleId(null);
+      setBulkArticles([{title: '', summary: '', content: '', category: 'Urgente', imageUrl: ''}]);
     } else {
-      onAddArticle({ title, summary, content, category, imageUrl });
+      if (bulkQuantity === 1) {
+        onAddArticle(bulkArticles[0]);
+      } else {
+        if (onAddBulkArticles) {
+          await onAddBulkArticles(bulkArticles.map(a => ({ ...a, views: 0 })));
+          alert(`${bulkQuantity} notícias publicadas com sucesso!`);
+        } else {
+          for (const article of bulkArticles) {
+            onAddArticle(article);
+          }
+          alert(`${bulkQuantity} notícias publicadas com sucesso!`);
+        }
+      }
+      setBulkArticles([{title: '', summary: '', content: '', category: 'Urgente', imageUrl: ''}]);
+      setBulkQuantity(1);
     }
-    setTitle('');
-    setSummary('');
-    setContent('');
-    setImageUrl('');
-    if (imageInputRef.current) imageInputRef.current.value = '';
   };
 
   const handleEditClick = (article: NewsArticle) => {
     setEditingArticleId(article.id);
-    setTitle(article.title);
-    setSummary(article.summary);
-    setContent(article.content || '');
-    setCategory(article.category);
-    setImageUrl(article.imageUrl);
+    setBulkQuantity(1);
+    setBulkArticles([{
+      title: article.title,
+      summary: article.summary,
+      content: article.content || '',
+      category: article.category,
+      imageUrl: article.imageUrl
+    }]);
     setActiveTab('news');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const cancelEdit = () => {
     setEditingArticleId(null);
-    setTitle('');
-    setSummary('');
-    setContent('');
-    setImageUrl('');
-    if (imageInputRef.current) imageInputRef.current.value = '';
+    setBulkArticles([{title: '', summary: '', content: '', category: 'Urgente', imageUrl: ''}]);
   };
 
   const handleVideoSubmit = (e: React.FormEvent) => {
@@ -250,119 +216,124 @@ export default function AdminPanel({ onBack, onAddArticle, onAddBulkArticles, on
                   <PlusCircle className="text-red-600" /> {activeTab === 'news' ? (editingArticleId ? 'Editar Notícia' : 'Nova Notícia') : 'Novo Vídeo'}
                 </h2>
                 {activeTab === 'news' && !editingArticleId && (
-                  <div>
-                    <input 
-                      type="file" 
-                      accept=".json" 
-                      ref={bulkInputRef}
-                      onChange={handleBulkUpload}
-                      className="hidden"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => bulkInputRef.current?.click()}
-                      disabled={isUploadingBulk}
-                      className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-1.5 px-3 rounded flex items-center gap-1 transition-colors disabled:opacity-50"
-                      title="Importar notícias em massa (JSON)"
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-bold text-gray-700">Quantidade:</label>
+                    <select 
+                      value={bulkQuantity}
+                      onChange={handleQuantityChange}
+                      className="px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-red-500 outline-none"
                     >
-                      <FileUp size={16} />
-                      {isUploadingBulk ? 'Importando...' : 'Massa'}
-                    </button>
+                      {Array.from({ length: 20 }, (_, i) => i + 1).map(num => (
+                        <option key={num} value={num}>{num}</option>
+                      ))}
+                    </select>
                   </div>
                 )}
               </div>
               
               {activeTab === 'news' ? (
-                <form onSubmit={handleNewsSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">Título da Notícia</label>
-                    <input 
-                      type="text" 
-                      required
-                      value={title}
-                      onChange={e => setTitle(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
-                      placeholder="Ex: Escândalo no governo..."
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">Resumo (Subtítulo)</label>
-                    <textarea 
-                      required
-                      value={summary}
-                      onChange={e => setSummary(e.target.value)}
-                      rows={2}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all resize-none"
-                      placeholder="Breve descrição da notícia..."
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">Conteúdo Completo</label>
-                    <textarea 
-                      required
-                      value={content}
-                      onChange={e => setContent(e.target.value)}
-                      rows={6}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all resize-y"
-                      placeholder="Escreva a notícia completa aqui..."
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">Categoria</label>
-                    <select 
-                      value={category}
-                      onChange={e => setCategory(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
-                    >
-                      <option value="Urgente">Urgente</option>
-                      <option value="Exclusivo">Exclusivo</option>
-                      <option value="Política">Política</option>
-                      <option value="Economia">Economia</option>
-                      <option value="Polícia">Polícia</option>
-                      <option value="Esportes">Esportes</option>
-                      <option value="Famosos">Famosos</option>
-                      <option value="Mundo">Mundo</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">Imagem (URL ou Galeria)</label>
-                    <div className="flex gap-2 mb-2">
-                      <input 
-                        type="url" 
-                        value={imageUrl}
-                        onChange={e => setImageUrl(e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
-                        placeholder="https://exemplo.com/imagem.jpg"
-                      />
-                      <button 
-                        type="button"
-                        onClick={() => imageInputRef.current?.click()}
-                        className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center justify-center border border-gray-300"
-                        title="Upload da Galeria"
-                      >
-                        <FileUp size={20} />
-                      </button>
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        className="hidden" 
-                        ref={imageInputRef}
-                        onChange={handleImageUpload}
-                      />
-                    </div>
-                    {imageUrl && (
-                      <div className="mt-2 aspect-video rounded-lg overflow-hidden border border-gray-200">
-                        <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/400x225?text=Imagem+Inválida')} />
+                <form onSubmit={handleNewsSubmit} className="space-y-8">
+                  {bulkArticles.map((article, index) => (
+                    <div key={index} className={`space-y-4 ${index > 0 ? 'pt-8 border-t-2 border-gray-200' : ''}`}>
+                      {bulkQuantity > 1 && (
+                        <h3 className="font-black text-lg text-red-600 mb-4">Notícia {index + 1}</h3>
+                      )}
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Título da Notícia</label>
+                        <input 
+                          type="text" 
+                          required
+                          value={article.title}
+                          onChange={e => updateBulkArticle(index, 'title', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
+                          placeholder="Ex: Escândalo no governo..."
+                        />
                       </div>
-                    )}
-                  </div>
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Resumo (Subtítulo)</label>
+                        <textarea 
+                          required
+                          value={article.summary}
+                          onChange={e => updateBulkArticle(index, 'summary', e.target.value)}
+                          rows={2}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all resize-none"
+                          placeholder="Breve descrição da notícia..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Conteúdo Completo</label>
+                        <textarea 
+                          required
+                          value={article.content}
+                          onChange={e => updateBulkArticle(index, 'content', e.target.value)}
+                          rows={6}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all resize-y"
+                          placeholder="Escreva a notícia completa aqui..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Categoria</label>
+                        <select 
+                          value={article.category}
+                          onChange={e => updateBulkArticle(index, 'category', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
+                        >
+                          <option value="Urgente">Urgente</option>
+                          <option value="Exclusivo">Exclusivo</option>
+                          <option value="Política">Política</option>
+                          <option value="Economia">Economia</option>
+                          <option value="Polícia">Polícia</option>
+                          <option value="Esportes">Esportes</option>
+                          <option value="Famosos">Famosos</option>
+                          <option value="Mundo">Mundo</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Imagem (URL ou Galeria)</label>
+                        <div className="flex gap-2 mb-2">
+                          <input 
+                            type="url" 
+                            value={article.imageUrl}
+                            onChange={e => updateBulkArticle(index, 'imageUrl', e.target.value)}
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
+                            placeholder="https://exemplo.com/imagem.jpg"
+                          />
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              setUploadingIndex(index);
+                              imageInputRef.current?.click();
+                            }}
+                            className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center justify-center border border-gray-300"
+                            title="Upload da Galeria"
+                          >
+                            <FileUp size={20} />
+                          </button>
+                        </div>
+                        {article.imageUrl && (
+                          <div className="mt-2 aspect-video rounded-lg overflow-hidden border border-gray-200">
+                            <img src={article.imageUrl} alt="Preview" className="w-full h-full object-cover" onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/400x225?text=Imagem+Inválida')} />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                    ref={imageInputRef}
+                    onChange={handleImageUpload}
+                  />
+
                   <div className="flex gap-2 mt-6">
                     <button 
                       type="submit"
-                      disabled={!title || !summary || !imageUrl}
+                      disabled={bulkArticles.some(a => !a.title || !a.summary || !a.imageUrl)}
                       className="flex-1 py-3 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-black uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md"
                     >
-                      <Save size={20} /> {editingArticleId ? 'Salvar Edição' : 'Publicar Notícia'}
+                      <Save size={20} /> {editingArticleId ? 'Salvar Edição' : (bulkQuantity > 1 ? `Publicar ${bulkQuantity} Notícias` : 'Publicar Notícia')}
                     </button>
                     {editingArticleId && (
                       <button 
@@ -476,7 +447,12 @@ export default function AdminPanel({ onBack, onAddArticle, onAddBulkArticles, on
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start mb-1">
-                          <span className="text-xs font-bold text-red-600 uppercase bg-red-50 px-2 py-0.5 rounded">{article.category}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-red-600 uppercase bg-red-50 px-2 py-0.5 rounded">{article.category}</span>
+                            <span className="text-xs text-gray-500 flex items-center gap-1">
+                              <Eye size={12} /> {article.views || 0}
+                            </span>
+                          </div>
                           <div className="flex items-center gap-2">
                             <button 
                               onClick={() => handleEditClick(article)}
