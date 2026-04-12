@@ -69,9 +69,13 @@ export default function Dashboard() {
         ...newArticleData,
         createdAt: new Date().toISOString()
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding article:", error);
-      alert("Erro ao adicionar notícia. Verifique se você tem permissão.");
+      if (error.message && error.message.includes('payload is too large')) {
+        alert("Erro: A imagem escolhida é muito grande. Tente uma imagem com tamanho menor.");
+      } else {
+        alert("Erro ao adicionar notícia. A imagem pode ser muito grande ou você não tem permissão.");
+      }
     }
   };
 
@@ -84,8 +88,11 @@ export default function Dashboard() {
           createdAt: new Date().toISOString()
         })
       ));
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding bulk articles:", error);
+      if (error.message && error.message.includes('payload is too large')) {
+        alert("Erro: Uma das imagens escolhidas é muito grande. Tente imagens com tamanho menor.");
+      }
       throw error;
     }
   };
@@ -93,9 +100,13 @@ export default function Dashboard() {
   const handleEditArticle = async (id: string, updatedData: Partial<NewsArticle>) => {
     try {
       await updateDoc(doc(db, 'articles', id), updatedData);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating article:", error);
-      alert("Erro ao atualizar notícia.");
+      if (error.message && error.message.includes('payload is too large')) {
+        alert("Erro: A imagem escolhida é muito grande. Tente uma imagem com tamanho menor.");
+      } else {
+        alert("Erro ao atualizar notícia. A imagem pode ser muito grande ou houve um problema de conexão.");
+      }
     }
   };
 
