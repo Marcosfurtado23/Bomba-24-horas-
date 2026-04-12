@@ -38,6 +38,16 @@
         "createdAt": { "type": "string" }
       },
       "required": ["email", "role"]
+    },
+    "TickerItem": {
+      "title": "TickerItem",
+      "description": "A news ticker item.",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string", "description": "The text of the ticker item." },
+        "createdAt": { "type": "string", "description": "The ISO string of the creation date." }
+      },
+      "required": ["text", "createdAt"]
     }
   },
   "firestore": {
@@ -48,6 +58,10 @@
     "/videos/{videoId}": {
       "schema": { "$ref": "#/entities/Video" },
       "description": "Collection of video articles."
+    },
+    "/ticker/{tickerId}": {
+      "schema": { "$ref": "#/entities/TickerItem" },
+      "description": "Collection of news ticker items."
     },
     "/users/{userId}": {
       "schema": { "$ref": "#/entities/User" },

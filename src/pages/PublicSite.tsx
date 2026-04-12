@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Flame, Menu, Search, Bell, ChevronRight, Clock, AlertTriangle, TrendingUp, X, PlayCircle, CheckCircle } from 'lucide-react';
-import { NewsArticle, VideoArticle } from '../types';
+import { NewsArticle, VideoArticle, TickerItem } from '../types';
 import { db } from '../firebase';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 
@@ -35,6 +35,7 @@ export default function PublicSite() {
   
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [videos, setVideos] = useState<VideoArticle[]>([]);
+  const [tickerItems, setTickerItems] = useState<TickerItem[]>([]);
   const [initialLoad, setInitialLoad] = useState(true);
 
   const categories = ['Início', 'Política', 'Economia', 'Polícia', 'Esportes', 'Famosos'];
@@ -64,9 +65,21 @@ export default function PublicSite() {
       console.error("Error fetching videos:", error);
     });
 
+    const tickerQuery = query(collection(db, 'ticker'), orderBy('createdAt', 'desc'));
+    const unsubscribeTicker = onSnapshot(tickerQuery, (snapshot) => {
+      const tickerData: TickerItem[] = [];
+      snapshot.forEach((doc) => {
+        tickerData.push({ id: doc.id, ...doc.data() } as TickerItem);
+      });
+      setTickerItems(tickerData);
+    }, (error) => {
+      console.error("Error fetching ticker items:", error);
+    });
+
     return () => {
       unsubscribeArticles();
       unsubscribeVideos();
+      unsubscribeTicker();
     };
   }, []);
 
@@ -89,15 +102,26 @@ export default function PublicSite() {
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
       {/* Top Bar - Breaking News Ticker */}
       <div className="bg-red-700 text-white px-4 py-2 text-sm flex items-center justify-between">
-        <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
-          <span className="bg-white text-red-700 px-2 py-0.5 font-bold rounded-sm text-xs uppercase tracking-wider flex items-center gap-1">
+        <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap w-full">
+          <span className="bg-white text-red-700 px-2 py-0.5 font-bold rounded-sm text-xs uppercase tracking-wider flex items-center gap-1 shrink-0">
             <AlertTriangle size={14} /> Urgente
           </span>
-          <marquee className="font-medium" scrollamount="5">
-            Governo anuncia novas medidas econômicas para o próximo semestre • Acidente grave na rodovia BR-101 causa congestionamento de 15km • Seleção brasileira convoca novos jogadores para amistoso • Previsão de tempestade severa para a região sul nesta noite
-          </marquee>
+          {tickerItems.length > 0 ? (
+            <marquee className="font-medium" scrollamount="5">
+              {tickerItems.map((item, index) => (
+                <span key={item.id}>
+                  {item.text}
+                  {index < tickerItems.length - 1 && <span className="mx-4">•</span>}
+                </span>
+              ))}
+            </marquee>
+          ) : (
+            <marquee className="font-medium" scrollamount="5">
+              Nenhuma notícia urgente no momento.
+            </marquee>
+          )}
         </div>
-        <div className="hidden md:flex items-center gap-4 text-xs font-medium opacity-90">
+        <div className="hidden md:flex items-center gap-4 text-xs font-medium opacity-90 shrink-0 ml-4">
           <span>{new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
         </div>
       </div>
@@ -204,13 +228,18 @@ export default function PublicSite() {
                 {heroArticle && (
                   <Link to={`/article/${heroArticle.id}`} className="block">
                     <article className="relative group overflow-hidden rounded-xl shadow-lg cursor-pointer">
-                      <div className="aspect-video w-full overflow-hidden">
+                      <div className="aspect-video w-full overflow-hidden relative">
                         <img 
                           src={heroArticle.imageUrl} 
                           alt="" 
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                           {...(heroArticle.imageUrl?.startsWith('data:') ? {} : { referrerPolicy: 'no-referrer' })}
                         />
+                        {heroArticle.videoUrl && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
+                            <PlayCircle size={64} className="text-white drop-shadow-lg opacity-90 group-hover:scale-110 transition-transform" />
+                          </div>
+                        )}
                       </div>
                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col justify-end p-6 md:p-8">
                         <span className="bg-red-600 text-white text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-sm w-max mb-3">{heroArticle.category}</span>
@@ -243,6 +272,11 @@ export default function PublicSite() {
                               {...(article.imageUrl?.startsWith('data:') ? {} : { referrerPolicy: 'no-referrer' })}
                             />
                             <div className="absolute top-3 left-3 bg-red-600 text-white text-xs font-bold uppercase px-2 py-1 rounded-sm">{article.category}</div>
+                            {article.videoUrl && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
+                                <PlayCircle size={48} className="text-white drop-shadow-lg opacity-90 group-hover:scale-110 transition-transform" />
+                              </div>
+                            )}
                           </div>
                           <div className="p-5">
                             <h2 className="text-xl font-bold leading-tight mb-2 group-hover:text-red-600 transition-colors">{article.title}</h2>
@@ -268,10 +302,15 @@ export default function PublicSite() {
                       {listArticles.map((item) => (
                         <Link to={`/article/${item.id}`} key={item.id} className="block">
                           <article className="flex gap-4 group cursor-pointer">
-                            <div className="w-1/3 sm:w-1/4 aspect-video rounded-lg overflow-hidden shrink-0">
+                            <div className="w-1/3 sm:w-1/4 aspect-video rounded-lg overflow-hidden shrink-0 relative">
                               <img src={item.imageUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" {...(item.imageUrl?.startsWith('data:') ? {} : { referrerPolicy: 'no-referrer' })} />
-                        </div>
-                        <div className="flex flex-col justify-center w-full">
+                              {item.videoUrl && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
+                                  <PlayCircle size={32} className="text-white drop-shadow-lg opacity-90 group-hover:scale-110 transition-transform" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex flex-col justify-center w-full">
                           <span className="text-red-600 text-xs font-bold uppercase mb-1">{item.category}</span>
                           <h4 className="text-base sm:text-lg font-bold leading-tight mb-2 group-hover:text-red-600 transition-colors">{item.title}</h4>
                           <div className="flex items-center justify-between text-gray-400 text-xs mt-auto">

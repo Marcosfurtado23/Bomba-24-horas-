@@ -4,7 +4,7 @@ import { auth, db } from '../firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { collection, onSnapshot, addDoc, deleteDoc, updateDoc, doc, query, orderBy } from 'firebase/firestore';
 import AdminPanel from '../components/AdminPanel';
-import { NewsArticle, VideoArticle } from '../types';
+import { NewsArticle, VideoArticle, TickerItem } from '../types';
 
 export default function Dashboard() {
   const [user, setUser] = useState(auth.currentUser);
@@ -13,6 +13,7 @@ export default function Dashboard() {
 
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [videos, setVideos] = useState<VideoArticle[]>([]);
+  const [tickerItems, setTickerItems] = useState<TickerItem[]>([]);
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
@@ -52,9 +53,21 @@ export default function Dashboard() {
       console.error("Error fetching videos:", error);
     });
 
+    const tickerQuery = query(collection(db, 'ticker'), orderBy('createdAt', 'desc'));
+    const unsubscribeTicker = onSnapshot(tickerQuery, (snapshot) => {
+      const tickerData: TickerItem[] = [];
+      snapshot.forEach((doc) => {
+        tickerData.push({ id: doc.id, ...doc.data() } as TickerItem);
+      });
+      setTickerItems(tickerData);
+    }, (error) => {
+      console.error("Error fetching ticker items:", error);
+    });
+
     return () => {
       unsubscribeArticles();
       unsubscribeVideos();
+      unsubscribeTicker();
     };
   }, [user]);
 
@@ -140,6 +153,27 @@ export default function Dashboard() {
     }
   };
 
+  const handleAddTickerItem = async (text: string) => {
+    try {
+      await addDoc(collection(db, 'ticker'), {
+        text,
+        createdAt: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error adding ticker item:", error);
+      alert("Erro ao adicionar notícia ao letreiro.");
+    }
+  };
+
+  const handleDeleteTickerItem = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'ticker', id));
+    } catch (error) {
+      console.error("Error deleting ticker item:", error);
+      alert("Erro ao deletar notícia do letreiro.");
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -153,12 +187,15 @@ export default function Dashboard() {
       onBack={handleLogout} 
       articles={articles}
       videos={videos}
+      tickerItems={tickerItems}
       onAddArticle={handleAddArticle}
       onAddBulkArticles={handleAddBulkArticles}
       onEditArticle={handleEditArticle}
       onDeleteArticle={handleDeleteArticle}
       onAddVideo={handleAddVideo}
       onDeleteVideo={handleDeleteVideo}
+      onAddTickerItem={handleAddTickerItem}
+      onDeleteTickerItem={handleDeleteTickerItem}
     />
   );
 }

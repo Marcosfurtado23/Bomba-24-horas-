@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { NewsArticle, VideoArticle } from '../types';
-import { ArrowLeft, Save, Trash2, PlusCircle, Image as ImageIcon, Video, FileUp, Sun, Moon, Eye, X, Clock } from 'lucide-react';
+import { NewsArticle, VideoArticle, TickerItem } from '../types';
+import { ArrowLeft, Save, Trash2, PlusCircle, Image as ImageIcon, Video, FileUp, Sun, Moon, Eye, X, Clock, Type } from 'lucide-react';
 
 interface AdminPanelProps {
   onBack: () => void;
@@ -12,10 +12,16 @@ interface AdminPanelProps {
   videos: VideoArticle[];
   onAddVideo: (video: Omit<VideoArticle, 'id' | 'createdAt'>) => void;
   onDeleteVideo: (id: string) => void;
+  tickerItems?: TickerItem[];
+  onAddTickerItem?: (text: string) => void;
+  onDeleteTickerItem?: (id: string) => void;
 }
 
-export default function AdminPanel({ onBack, onAddArticle, onAddBulkArticles, onEditArticle, articles, onDeleteArticle, videos, onAddVideo, onDeleteVideo }: AdminPanelProps) {
-  const [activeTab, setActiveTab] = useState<'news' | 'videos'>('news');
+export default function AdminPanel({ 
+  onBack, onAddArticle, onAddBulkArticles, onEditArticle, articles, onDeleteArticle, 
+  videos, onAddVideo, onDeleteVideo, tickerItems = [], onAddTickerItem, onDeleteTickerItem 
+}: AdminPanelProps) {
+  const [activeTab, setActiveTab] = useState<'news' | 'videos' | 'ticker'>('news');
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -29,7 +35,7 @@ export default function AdminPanel({ onBack, onAddArticle, onAddBulkArticles, on
 
   // News State
   const [bulkQuantity, setBulkQuantity] = useState(1);
-  const [bulkArticles, setBulkArticles] = useState([{title: '', summary: '', content: '', category: 'Urgente', imageUrl: ''}]);
+  const [bulkArticles, setBulkArticles] = useState([{title: '', summary: '', content: '', category: 'Urgente', imageUrl: '', videoUrl: ''}]);
   const uploadingIndexRef = useRef<number | null>(null);
   const [previewArticle, setPreviewArticle] = useState<any | null>(null);
   
@@ -38,6 +44,9 @@ export default function AdminPanel({ onBack, onAddArticle, onAddBulkArticles, on
   const [videoUrl, setVideoUrl] = useState('');
   const [videoDuration, setVideoDuration] = useState('');
   const [videoAspectRatio, setVideoAspectRatio] = useState<'16:9' | '9:16' | '1:1'>('16:9');
+
+  // Ticker State
+  const [tickerText, setTickerText] = useState('');
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -48,7 +57,7 @@ export default function AdminPanel({ onBack, onAddArticle, onAddBulkArticles, on
     setBulkArticles(prev => {
       const newArr = [...prev];
       while (newArr.length < qty) {
-        newArr.push({title: '', summary: '', content: '', category: 'Urgente', imageUrl: ''});
+        newArr.push({title: '', summary: '', content: '', category: 'Urgente', imageUrl: '', videoUrl: ''});
       }
       return newArr.slice(0, qty);
     });
@@ -130,7 +139,7 @@ export default function AdminPanel({ onBack, onAddArticle, onAddBulkArticles, on
     if (editingArticleId && onEditArticle) {
       onEditArticle(editingArticleId, bulkArticles[0]);
       setEditingArticleId(null);
-      setBulkArticles([{title: '', summary: '', content: '', category: 'Urgente', imageUrl: ''}]);
+      setBulkArticles([{title: '', summary: '', content: '', category: 'Urgente', imageUrl: '', videoUrl: ''}]);
     } else {
       if (bulkQuantity === 1) {
         onAddArticle(bulkArticles[0]);
@@ -145,7 +154,7 @@ export default function AdminPanel({ onBack, onAddArticle, onAddBulkArticles, on
           alert(`${bulkQuantity} notícias publicadas com sucesso!`);
         }
       }
-      setBulkArticles([{title: '', summary: '', content: '', category: 'Urgente', imageUrl: ''}]);
+      setBulkArticles([{title: '', summary: '', content: '', category: 'Urgente', imageUrl: '', videoUrl: ''}]);
       setBulkQuantity(1);
     }
   };
@@ -158,7 +167,8 @@ export default function AdminPanel({ onBack, onAddArticle, onAddBulkArticles, on
       summary: article.summary,
       content: article.content || '',
       category: article.category,
-      imageUrl: article.imageUrl
+      imageUrl: article.imageUrl,
+      videoUrl: article.videoUrl || ''
     }]);
     setActiveTab('news');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -166,7 +176,7 @@ export default function AdminPanel({ onBack, onAddArticle, onAddBulkArticles, on
 
   const cancelEdit = () => {
     setEditingArticleId(null);
-    setBulkArticles([{title: '', summary: '', content: '', category: 'Urgente', imageUrl: ''}]);
+    setBulkArticles([{title: '', summary: '', content: '', category: 'Urgente', imageUrl: '', videoUrl: ''}]);
   };
 
   const handleVideoSubmit = (e: React.FormEvent) => {
@@ -177,6 +187,14 @@ export default function AdminPanel({ onBack, onAddArticle, onAddBulkArticles, on
     setVideoDuration('');
     setVideoAspectRatio('16:9');
     if (videoInputRef.current) videoInputRef.current.value = '';
+  };
+
+  const handleTickerSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (onAddTickerItem && tickerText.trim()) {
+      onAddTickerItem(tickerText.trim());
+      setTickerText('');
+    }
   };
 
   return (
@@ -218,6 +236,12 @@ export default function AdminPanel({ onBack, onAddArticle, onAddBulkArticles, on
           >
             <Video size={20} /> Vídeos
           </button>
+          <button 
+            onClick={() => setActiveTab('ticker')}
+            className={`px-6 py-3 font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center gap-2 ${activeTab === 'ticker' ? 'bg-red-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}
+          >
+            <Type size={20} /> Letreiro
+          </button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -226,7 +250,7 @@ export default function AdminPanel({ onBack, onAddArticle, onAddBulkArticles, on
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-24">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-black uppercase flex items-center gap-2 border-l-4 border-red-600 pl-3">
-                  <PlusCircle className="text-red-600" /> {activeTab === 'news' ? (editingArticleId ? 'Editar Notícia' : 'Nova Notícia') : 'Novo Vídeo'}
+                  <PlusCircle className="text-red-600" /> {activeTab === 'news' ? (editingArticleId ? 'Editar Notícia' : 'Nova Notícia') : activeTab === 'videos' ? 'Novo Vídeo' : 'Novo Letreiro'}
                 </h2>
                 {activeTab === 'news' && !editingArticleId && (
                   <div className="flex items-center gap-2">
@@ -337,6 +361,16 @@ export default function AdminPanel({ onBack, onAddArticle, onAddBulkArticles, on
                           </div>
                         )}
                       </div>
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Vídeo da Notícia (Opcional)</label>
+                        <input 
+                          type="url" 
+                          value={article.videoUrl || ''}
+                          onChange={e => updateBulkArticle(index, 'videoUrl', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
+                          placeholder="URL do vídeo (ex: YouTube, Vimeo...)"
+                        />
+                      </div>
                     </div>
                   ))}
                   
@@ -367,7 +401,7 @@ export default function AdminPanel({ onBack, onAddArticle, onAddBulkArticles, on
                     )}
                   </div>
                 </form>
-              ) : (
+              ) : activeTab === 'videos' ? (
                 <form onSubmit={handleVideoSubmit} className="space-y-4">
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-1">Título do Vídeo</label>
@@ -427,23 +461,44 @@ export default function AdminPanel({ onBack, onAddArticle, onAddBulkArticles, on
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">Formato do Vídeo</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Formato</label>
                     <select 
                       value={videoAspectRatio}
-                      onChange={e => setVideoAspectRatio(e.target.value as '16:9' | '9:16' | '1:1')}
+                      onChange={e => setVideoAspectRatio(e.target.value as any)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
                     >
-                      <option value="16:9">Horizontal (16:9) - Padrão</option>
-                      <option value="9:16">Vertical (9:16) - Shorts/Reels</option>
-                      <option value="1:1">Quadrado (1:1) - Feed</option>
+                      <option value="16:9">Horizontal (16:9)</option>
+                      <option value="9:16">Vertical / Reels (9:16)</option>
+                      <option value="1:1">Quadrado (1:1)</option>
                     </select>
                   </div>
                   <button 
                     type="submit"
                     disabled={!videoTitle || !videoUrl}
-                    className="w-full py-3 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-black uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2 mt-6 shadow-md"
+                    className="w-full py-3 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-black uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md mt-4"
                   >
                     <Save size={20} /> Publicar Vídeo
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={handleTickerSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Texto do Letreiro</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={tickerText}
+                      onChange={e => setTickerText(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
+                      placeholder="Ex: URGENTE: Governo anuncia novas medidas..."
+                    />
+                  </div>
+                  <button 
+                    type="submit"
+                    disabled={!tickerText.trim()}
+                    className="w-full py-3 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-black uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md mt-4"
+                  >
+                    <Save size={20} /> Adicionar ao Letreiro
                   </button>
                 </form>
               )}
@@ -453,7 +508,7 @@ export default function AdminPanel({ onBack, onAddArticle, onAddBulkArticles, on
           <div className="lg:col-span-2">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h2 className="text-xl font-black uppercase mb-6 border-l-4 border-gray-800 pl-3">
-                {activeTab === 'news' ? `Notícias Publicadas (${articles.length})` : `Vídeos Publicados (${videos.length})`}
+                {activeTab === 'news' ? `Notícias Publicadas (${articles.length})` : activeTab === 'videos' ? `Vídeos Publicados (${videos.length})` : `Letreiro (${tickerItems.length})`}
               </h2>
               
               {activeTab === 'news' ? (
@@ -502,7 +557,7 @@ export default function AdminPanel({ onBack, onAddArticle, onAddBulkArticles, on
                     </div>
                   )}
                 </div>
-              ) : (
+              ) : activeTab === 'videos' ? (
                 <div className="space-y-4">
                   {videos.map((video) => (
                     <div key={video.id} className="flex gap-4 p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors group">
@@ -543,6 +598,26 @@ export default function AdminPanel({ onBack, onAddArticle, onAddBulkArticles, on
                   {videos.length === 0 && (
                     <div className="text-center py-12 text-gray-500">
                       Nenhum vídeo publicado.
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {tickerItems.map((item) => (
+                    <div key={item.id} className="flex justify-between items-center p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors group">
+                      <p className="font-bold text-gray-900 line-clamp-2">{item.text}</p>
+                      <button 
+                        onClick={() => onDeleteTickerItem && onDeleteTickerItem(item.id)}
+                        className="text-gray-400 hover:text-red-600 transition-colors p-1 shrink-0 ml-4"
+                        title="Excluir item do letreiro"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+                  {tickerItems.length === 0 && (
+                    <div className="text-center py-12 text-gray-500">
+                      Nenhum item no letreiro.
                     </div>
                   )}
                 </div>

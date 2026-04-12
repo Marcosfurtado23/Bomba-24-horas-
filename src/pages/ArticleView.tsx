@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { doc, getDoc, updateDoc, increment, collection, query, orderBy, limit, getDocs, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { NewsArticle } from '../types';
-import { ArrowLeft, Clock, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Clock, ChevronRight, PlayCircle } from 'lucide-react';
 
 export default function ArticleView() {
   const { id } = useParams();
@@ -110,6 +111,20 @@ export default function ArticleView() {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
+      <Helmet>
+        <title>{article.title} - Bomba 24 Horas</title>
+        <meta name="description" content={article.summary} />
+        <meta property="og:title" content={article.title} />
+        <meta property="og:description" content={article.summary} />
+        <meta property="og:image" content={article.imageUrl} />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content={window.location.href} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={article.title} />
+        <meta name="twitter:description" content={article.summary} />
+        <meta name="twitter:image" content={article.imageUrl} />
+      </Helmet>
+
       <header className="bg-red-600 text-white shadow-md sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center">
           <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
@@ -185,6 +200,22 @@ export default function ArticleView() {
               {article.summary}
             </p>
             
+            {article.videoUrl && (
+              <div className="mb-8 aspect-video w-full rounded-xl overflow-hidden bg-black shadow-lg">
+                {article.videoUrl.includes('youtube.com') || article.videoUrl.includes('youtu.be') ? (
+                  <iframe 
+                    src={`https://www.youtube.com/embed/${article.videoUrl.includes('youtu.be') ? article.videoUrl.split('/').pop()?.split('?')[0] : new URL(article.videoUrl).searchParams.get('v')}`} 
+                    title="Video player" 
+                    className="w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowFullScreen
+                  ></iframe>
+                ) : (
+                  <video src={article.videoUrl} className="w-full h-full object-contain" controls />
+                )}
+              </div>
+            )}
+
             <div className="prose prose-lg max-w-none text-gray-800">
               {article.content ? (
                 article.content.split('\n').map((paragraph, idx) => (
@@ -214,13 +245,18 @@ export default function ArticleView() {
                   to={`/article/${related.id}`}
                   className="group bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all flex flex-col"
                 >
-                  <div className="aspect-video w-full overflow-hidden bg-gray-100">
+                  <div className="aspect-video w-full overflow-hidden bg-gray-100 relative">
                     <img 
                       src={related.imageUrl} 
                       alt="" 
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                       {...(related.imageUrl?.startsWith('data:') ? {} : { referrerPolicy: 'no-referrer' })}
                     />
+                    {related.videoUrl && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
+                        <PlayCircle size={48} className="text-white drop-shadow-lg opacity-90 group-hover:scale-110 transition-transform" />
+                      </div>
+                    )}
                   </div>
                   <div className="p-4 flex flex-col flex-grow">
                     <span className="text-red-600 text-xs font-bold uppercase tracking-wider mb-2">
