@@ -22,6 +22,45 @@ async function startServer() {
     app.use(express.static(distPath, { index: false }));
   }
 
+  // API route for serving images
+  app.get("/api/image/:articleId", async (req, res) => {
+    const articleId = req.params.articleId;
+    try {
+      const projectId = "project-a743ebf2-7fcf-4efd-89f";
+      const databaseId = "ai-studio-a301a323-88f4-4fb9-8efa-2c99cff7771a";
+      const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/articles/${articleId}`;
+      
+      const response = await fetch(firestoreUrl);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.fields && data.fields.imageUrl && data.fields.imageUrl.stringValue) {
+          const imageUrl = data.fields.imageUrl.stringValue;
+          
+          // Check if it's a base64 image
+          const matches = imageUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+          
+          if (matches && matches.length === 3) {
+            const type = matches[1];
+            const buffer = Buffer.from(matches[2], 'base64');
+            
+            res.set('Content-Type', type);
+            res.set('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
+            return res.send(buffer);
+          } else if (imageUrl.startsWith('http')) {
+            // If it's already a URL, redirect to it
+            return res.redirect(imageUrl);
+          }
+        }
+      }
+      
+      // Fallback image or 404
+      res.status(404).send('Image not found');
+    } catch (error) {
+      console.error("Error fetching image:", error);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+
   // Intercept requests to inject meta tags
   app.get("*", async (req, res, next) => {
     const url = req.originalUrl;
@@ -56,17 +95,20 @@ async function startServer() {
             if (data.fields) {
               const title = data.fields.title?.stringValue || "Notícia";
               const summary = data.fields.summary?.stringValue || "";
-              const imageUrl = data.fields.imageUrl?.stringValue || "";
+              
+              const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+              const host = req.headers['x-forwarded-host'] || req.get('host');
+              const fullImageUrl = `${protocol}://${host}/api/image/${articleId}`;
 
               metaTags = `
                 <meta property="og:title" content="${title.replace(/"/g, '&quot;')}" />
                 <meta property="og:description" content="${summary.replace(/"/g, '&quot;')}" />
-                <meta property="og:image" content="${imageUrl}" />
+                <meta property="og:image" content="${fullImageUrl}" />
                 <meta property="og:type" content="article" />
                 <meta name="twitter:card" content="summary_large_image" />
                 <meta name="twitter:title" content="${title.replace(/"/g, '&quot;')}" />
                 <meta name="twitter:description" content="${summary.replace(/"/g, '&quot;')}" />
-                <meta name="twitter:image" content="${imageUrl}" />
+                <meta name="twitter:image" content="${fullImageUrl}" />
               `;
             }
           }

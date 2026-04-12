@@ -116,13 +116,13 @@ export default function ArticleView() {
         <meta name="description" content={article.summary} />
         <meta property="og:title" content={article.title} />
         <meta property="og:description" content={article.summary} />
-        <meta property="og:image" content={article.imageUrl} />
+        <meta property="og:image" content={`${window.location.origin}/api/image/${id}`} />
         <meta property="og:type" content="article" />
         <meta property="og:url" content={window.location.href} />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={article.title} />
         <meta name="twitter:description" content={article.summary} />
-        <meta name="twitter:image" content={article.imageUrl} />
+        <meta name="twitter:image" content={`${window.location.origin}/api/image/${id}`} />
       </Helmet>
 
       <header className="bg-red-600 text-white shadow-md sticky top-0 z-50">
