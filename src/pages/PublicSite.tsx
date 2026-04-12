@@ -209,7 +209,7 @@ export default function PublicSite() {
                           src={heroArticle.imageUrl} 
                           alt="" 
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                          referrerPolicy="no-referrer"
+                          {...(heroArticle.imageUrl?.startsWith('data:') ? {} : { referrerPolicy: 'no-referrer' })}
                         />
                       </div>
                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col justify-end p-6 md:p-8">
@@ -240,7 +240,7 @@ export default function PublicSite() {
                               src={article.imageUrl} 
                               alt="" 
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                              referrerPolicy="no-referrer"
+                              {...(article.imageUrl?.startsWith('data:') ? {} : { referrerPolicy: 'no-referrer' })}
                             />
                             <div className="absolute top-3 left-3 bg-red-600 text-white text-xs font-bold uppercase px-2 py-1 rounded-sm">{article.category}</div>
                           </div>
@@ -269,7 +269,7 @@ export default function PublicSite() {
                         <Link to={`/article/${item.id}`} key={item.id} className="block">
                           <article className="flex gap-4 group cursor-pointer">
                             <div className="w-1/3 sm:w-1/4 aspect-video rounded-lg overflow-hidden shrink-0">
-                              <img src={item.imageUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" referrerPolicy="no-referrer" />
+                              <img src={item.imageUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" {...(item.imageUrl?.startsWith('data:') ? {} : { referrerPolicy: 'no-referrer' })} />
                         </div>
                         <div className="flex flex-col justify-center w-full">
                           <span className="text-red-600 text-xs font-bold uppercase mb-1">{item.category}</span>

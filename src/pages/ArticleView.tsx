@@ -126,7 +126,7 @@ export default function ArticleView() {
               src={article.imageUrl} 
               alt="" 
               className="w-full h-full object-cover" 
-              referrerPolicy="no-referrer" 
+              {...(article.imageUrl?.startsWith('data:') ? {} : { referrerPolicy: 'no-referrer' })}
             />
           </div>
           <div className="p-6 md:p-10">
@@ -219,7 +219,7 @@ export default function ArticleView() {
                       src={related.imageUrl} 
                       alt="" 
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                      referrerPolicy="no-referrer"
+                      {...(related.imageUrl?.startsWith('data:') ? {} : { referrerPolicy: 'no-referrer' })}
                     />
                   </div>
                   <div className="p-4 flex flex-col flex-grow">

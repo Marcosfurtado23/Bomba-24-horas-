@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { NewsArticle, VideoArticle } from '../types';
-import { ArrowLeft, Save, Trash2, PlusCircle, Image as ImageIcon, Video, FileUp, Sun, Moon, Eye } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, PlusCircle, Image as ImageIcon, Video, FileUp, Sun, Moon, Eye, X, Clock } from 'lucide-react';
 
 interface AdminPanelProps {
   onBack: () => void;
@@ -30,7 +30,8 @@ export default function AdminPanel({ onBack, onAddArticle, onAddBulkArticles, on
   // News State
   const [bulkQuantity, setBulkQuantity] = useState(1);
   const [bulkArticles, setBulkArticles] = useState([{title: '', summary: '', content: '', category: 'Urgente', imageUrl: ''}]);
-  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
+  const uploadingIndexRef = useRef<number | null>(null);
+  const [previewArticle, setPreviewArticle] = useState<any | null>(null);
   
   // Video State
   const [videoTitle, setVideoTitle] = useState('');
@@ -63,35 +64,47 @@ export default function AdminPanel({ onBack, onAddArticle, onAddBulkArticles, on
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && uploadingIndex !== null) {
+    const index = uploadingIndexRef.current;
+    if (file && index !== null) {
       const reader = new FileReader();
       reader.onloadend = () => {
         const img = new Image();
         img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 800;
-          const MAX_HEIGHT = 800;
-          let width = img.width;
-          let height = img.height;
+          try {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 1200;
+            const MAX_HEIGHT = 1200;
+            let width = img.width;
+            let height = img.height;
 
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
+            if (width > height) {
+              if (width > MAX_WIDTH) {
+                height *= MAX_WIDTH / width;
+                width = MAX_WIDTH;
+              }
+            } else {
+              if (height > MAX_HEIGHT) {
+                width *= MAX_HEIGHT / height;
+                height = MAX_HEIGHT;
+              }
             }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
-            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(img, 0, 0, width, height);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+            updateBulkArticle(index, 'imageUrl', dataUrl);
+          } catch (err) {
+            console.error("Error resizing image:", err);
+            alert("Erro ao processar a imagem. Tente uma imagem menor.");
+          } finally {
+            uploadingIndexRef.current = null;
+            if (imageInputRef.current) imageInputRef.current.value = '';
           }
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-          updateBulkArticle(uploadingIndex, 'imageUrl', dataUrl);
-          setUploadingIndex(null);
+        };
+        img.onerror = () => {
+          alert("Erro ao carregar a imagem. O formato pode não ser suportado (ex: HEIC). Tente usar JPG ou PNG.");
+          uploadingIndexRef.current = null;
           if (imageInputRef.current) imageInputRef.current.value = '';
         };
         img.src = reader.result as string;
@@ -301,13 +314,21 @@ export default function AdminPanel({ onBack, onAddArticle, onAddBulkArticles, on
                           <button 
                             type="button"
                             onClick={() => {
-                              setUploadingIndex(index);
+                              uploadingIndexRef.current = index;
                               imageInputRef.current?.click();
                             }}
                             className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center justify-center border border-gray-300"
                             title="Upload da Galeria"
                           >
                             <FileUp size={20} />
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={() => setPreviewArticle(article)}
+                            className="p-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors flex items-center justify-center border border-blue-300"
+                            title="Prévia da Notícia"
+                          >
+                            <Eye size={20} />
                           </button>
                         </div>
                         {article.imageUrl && (
@@ -531,6 +552,65 @@ export default function AdminPanel({ onBack, onAddArticle, onAddBulkArticles, on
 
         </div>
       </main>
+
+      {previewArticle && (
+        <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white max-w-4xl w-full rounded-xl shadow-2xl overflow-hidden relative my-8">
+            <button
+              onClick={() => setPreviewArticle(null)}
+              className="absolute top-4 right-4 bg-black/50 hover:bg-black text-white p-2 rounded-full z-10 transition-colors"
+            >
+              <X size={24} />
+            </button>
+            <div className="max-h-[80vh] overflow-y-auto">
+              <div className="bg-gray-50 font-sans text-gray-900 min-h-full">
+                <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+                  <article className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="aspect-video w-full overflow-hidden bg-gray-100">
+                      {previewArticle.imageUrl ? (
+                        <img
+                          src={previewArticle.imageUrl}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          {...(previewArticle.imageUrl.startsWith('data:') ? {} : { referrerPolicy: 'no-referrer' })}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400">Sem imagem</div>
+                      )}
+                    </div>
+                    <div className="p-6 md:p-10">
+                      <div className="flex flex-wrap items-center gap-3 mb-4">
+                        <span className="bg-red-600 text-white text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-sm">
+                          {previewArticle.category || 'Categoria'}
+                        </span>
+                        <span className="text-gray-500 text-sm flex items-center gap-1">
+                          <Clock size={14} />
+                          {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 leading-tight mb-6">
+                        {previewArticle.title || 'Título da Notícia'}
+                      </h1>
+                      <p className="text-xl text-gray-600 font-medium mb-8 leading-relaxed border-l-4 border-gray-200 pl-4">
+                        {previewArticle.summary || 'Resumo da notícia aparecerá aqui.'}
+                      </p>
+                      <div className="prose prose-lg max-w-none text-gray-800">
+                        {previewArticle.content ? (
+                          previewArticle.content.split('\n').map((paragraph: string, idx: number) => (
+                            paragraph.trim() ? <p key={idx} className="mb-4 leading-relaxed text-lg">{paragraph}</p> : <br key={idx} />
+                          ))
+                        ) : (
+                          <p className="italic text-gray-500">O conteúdo completo aparecerá aqui.</p>
+                        )}
+                      </div>
+                    </div>
+                  </article>
+                </main>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
