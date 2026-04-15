@@ -16,6 +16,9 @@ export default defineConfig(({mode}) => {
         workbox: {
           importScripts: ['/custom-sw.js']
         },
+        devOptions: {
+          enabled: true
+        },
         manifest: {
           name: 'Bomba 24 Horas',
           short_name: 'Bomba 24h',
