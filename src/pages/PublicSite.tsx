@@ -525,6 +525,7 @@ export default function PublicSite() {
                 <li><a href="#" className="hover:text-red-400 transition-colors">Termos de Uso</a></li>
                 <li><a href="#" className="hover:text-red-400 transition-colors">Política de Privacidade</a></li>
                 <li><a href="#" className="hover:text-red-400 transition-colors">Política de Cookies</a></li>
+                <li><Link to="/admin" className="hover:text-red-400 transition-colors">Painel Admin</Link></li>
               </ul>
             </div>
           </div>
