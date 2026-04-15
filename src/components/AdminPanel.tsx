@@ -42,8 +42,8 @@ export default function AdminPanel({
       const reg = await navigator.serviceWorker.ready;
       await reg.showNotification('Bomba 24 horas: NOTÍCIA URGENTE DE TESTE', {
         body: 'Leia agora! (Isso é apenas um teste)',
-        icon: '/icon.png',
-        badge: '/icon.png',
+        icon: '/logo-192.png',
+        badge: '/logo-192.png',
         data: { url: '/' }
       });
       alert('Notificação de teste enviada! Verifique seu celular/computador.');

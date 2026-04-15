@@ -168,7 +168,7 @@ export default function PublicSite() {
         <div className={`fixed inset-0 z-[9999] bg-red-600 flex flex-col items-center justify-center transition-opacity duration-500 ${loadingProgress === 100 ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
           <div className="flex flex-col items-center max-w-xs w-full px-6">
             <div className="w-24 h-24 bg-white rounded-2xl p-2 mb-8 shadow-2xl animate-pulse">
-              <img src="/icon.png" alt="Bomba 24h" className="w-full h-full object-contain" />
+              <img src="/logo.png" alt="Bomba 24h" className="w-full h-full object-contain" />
             </div>
             <div className="w-full bg-red-800 rounded-full h-2.5 mb-2 overflow-hidden">
               <div 
