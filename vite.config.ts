@@ -12,7 +12,7 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['icon.png'],
+        includeAssets: ['icon-192.png', 'icon-512.png'],
         workbox: {
           importScripts: ['/custom-sw.js']
         },
@@ -28,10 +28,16 @@ export default defineConfig(({mode}) => {
           display: 'standalone',
           icons: [
             {
-              src: 'icon.png',
-              sizes: '192x192 512x512',
+              src: 'icon-192.png',
+              sizes: '192x192',
               type: 'image/png',
-              purpose: 'any maskable'
+              purpose: 'any'
+            },
+            {
+              src: 'icon-512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'any'
             }
           ]
         }
