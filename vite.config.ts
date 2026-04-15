@@ -13,6 +13,9 @@ export default defineConfig(({mode}) => {
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['icon.svg'],
+        workbox: {
+          importScripts: ['/custom-sw.js']
+        },
         manifest: {
           name: 'Bomba 24 Horas',
           short_name: 'Bomba 24h',

@@ -78,10 +78,34 @@ export default function Dashboard() {
 
   const handleAddArticle = async (newArticleData: Omit<NewsArticle, 'id' | 'createdAt'>) => {
     try {
-      await addDoc(collection(db, 'articles'), {
+      const docRef = await addDoc(collection(db, 'articles'), {
         ...newArticleData,
         createdAt: new Date().toISOString()
       });
+
+      // Trigger push notification
+      try {
+        const { getDocs } = await import('firebase/firestore');
+        const subsSnapshot = await getDocs(collection(db, 'subscriptions'));
+        const subscriptions = subsSnapshot.docs.map(d => d.data());
+        
+        if (subscriptions.length > 0) {
+          await fetch('/api/notify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              subscriptions,
+              payload: {
+                title: newArticleData.title,
+                url: `/article/${docRef.id}`
+              }
+            })
+          });
+        }
+      } catch (notifyError) {
+        console.error("Error triggering notifications:", notifyError);
+      }
+
     } catch (error: any) {
       console.error("Error adding article:", error);
       if (error.message && error.message.includes('payload is too large')) {
@@ -95,12 +119,38 @@ export default function Dashboard() {
   const handleAddBulkArticles = async (articles: Omit<NewsArticle, 'id' | 'createdAt'>[]) => {
     try {
       // Using Promise.all for simplicity. For very large batches, consider writeBatch.
-      await Promise.all(articles.map(article => 
+      const docRefs = await Promise.all(articles.map(article => 
         addDoc(collection(db, 'articles'), {
           ...article,
           createdAt: new Date().toISOString()
         })
       ));
+
+      // Trigger push notification for the first article in the batch (to avoid spamming)
+      if (articles.length > 0 && docRefs.length > 0) {
+        try {
+          const { getDocs } = await import('firebase/firestore');
+          const subsSnapshot = await getDocs(collection(db, 'subscriptions'));
+          const subscriptions = subsSnapshot.docs.map(d => d.data());
+          
+          if (subscriptions.length > 0) {
+            await fetch('/api/notify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                subscriptions,
+                payload: {
+                  title: articles[0].title,
+                  url: `/article/${docRefs[0].id}`
+                }
+              })
+            });
+          }
+        } catch (notifyError) {
+          console.error("Error triggering notifications:", notifyError);
+        }
+      }
+
     } catch (error: any) {
       console.error("Error adding bulk articles:", error);
       if (error.message && error.message.includes('payload is too large')) {

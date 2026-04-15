@@ -2,12 +2,24 @@ import express from "express";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import webpush from "web-push";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Configure web-push with VAPID keys
+const publicVapidKey = "BHcD_uds4CvnJekR3_QxpwL-ieiZgshI5_RcDqz7zyu7DUhbVoU67F02rQAtcut8hpvMf_E7HxDgOX0lJq1nXus";
+const privateVapidKey = "fHavzLu8uzw_ENprqRV3LsoDa32TlmlZ1XTYg4C6uWc";
+webpush.setVapidDetails(
+  "mailto:contato@bomba24horas.com.br",
+  publicVapidKey,
+  privateVapidKey
+);
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
+
+  app.use(express.json({ limit: '50mb' }));
 
   let vite: any;
   if (process.env.NODE_ENV !== "production") {
@@ -21,6 +33,32 @@ async function startServer() {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath, { index: false }));
   }
+
+  // API route for sending push notifications
+  app.post("/api/notify", async (req, res) => {
+    const { subscriptions, payload } = req.body;
+    
+    if (!subscriptions || !Array.isArray(subscriptions)) {
+      return res.status(400).json({ error: "Invalid subscriptions array" });
+    }
+
+    const notificationPayload = JSON.stringify({
+      title: `Bomba 24 horas: ${payload.title}`,
+      body: "Leia agora!",
+      url: payload.url || "/",
+    });
+
+    const sendPromises = subscriptions.map((sub) =>
+      webpush.sendNotification(sub, notificationPayload).catch((error) => {
+        console.error("Error sending notification, reason: ", error);
+        // We could return the failed subscription to delete it from Firestore later
+        return { error, endpoint: sub.endpoint };
+      })
+    );
+
+    await Promise.all(sendPromises);
+    res.status(200).json({ message: "Notifications sent successfully." });
+  });
 
   // API route for serving images
   app.get("/api/image/:articleId", async (req, res) => {

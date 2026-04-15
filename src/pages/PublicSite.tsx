@@ -3,7 +3,24 @@ import { Link } from 'react-router-dom';
 import { Flame, Menu, Search, Bell, ChevronRight, Clock, AlertTriangle, TrendingUp, X, PlayCircle, CheckCircle } from 'lucide-react';
 import { NewsArticle, VideoArticle, TickerItem } from '../types';
 import { db } from '../firebase';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, addDoc } from 'firebase/firestore';
+
+const publicVapidKey = "BHcD_uds4CvnJekR3_QxpwL-ieiZgshI5_RcDqz7zyu7DUhbVoU67F02rQAtcut8hpvMf_E7HxDgOX0lJq1nXus";
+
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
 
 const getAspectRatioClass = (ratio?: string) => {
   switch (ratio) {
@@ -88,10 +105,39 @@ export default function PublicSite() {
     setTimeout(() => setIsLoadingMore(false), 1500);
   };
 
-  const handleSubscribe = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubscribed(true);
-    setTimeout(() => setIsSubscribed(false), 3000);
+  const handleSubscribe = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      alert('Seu navegador não suporta notificações.');
+      return;
+    }
+
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      
+      // Request permission
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        alert('Você precisa permitir as notificações no seu navegador.');
+        return;
+      }
+
+      // Subscribe
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+      });
+
+      // Save to Firestore
+      await addDoc(collection(db, 'subscriptions'), JSON.parse(JSON.stringify(subscription)));
+      
+      setIsSubscribed(true);
+      setTimeout(() => setIsSubscribed(false), 3000);
+    } catch (error) {
+      console.error('Error subscribing to push notifications:', error);
+      alert('Erro ao ativar notificações.');
+    }
   };
 
   const heroArticle = articles[0];
@@ -178,9 +224,13 @@ export default function PublicSite() {
               >
                 {isSearchOpen ? <X size={20} /> : <Search size={20} />}
               </button>
-              <button className="p-2 hover:bg-red-700 rounded-full transition-colors relative">
-                <Bell size={20} />
-                <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-yellow-400 rounded-full border-2 border-red-600"></span>
+              <button 
+                onClick={handleSubscribe}
+                className="p-2 hover:bg-red-700 rounded-full transition-colors relative"
+                title="Ativar Notificações"
+              >
+                {isSubscribed ? <CheckCircle size={20} className="text-yellow-400" /> : <Bell size={20} />}
+                {!isSubscribed && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-yellow-400 rounded-full border-2 border-red-600"></span>}
               </button>
             </div>
           </div>

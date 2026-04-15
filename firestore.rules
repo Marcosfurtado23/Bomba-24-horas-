@@ -88,5 +88,10 @@ service cloud.firestore {
       allow update: if isAdmin() && isValidTicker();
       allow delete: if isAdmin();
     }
+
+    match /subscriptions/{subscriptionId} {
+      allow create: if request.resource.data.keys().hasAll(['endpoint', 'keys']);
+      allow read, delete: if isAdmin();
+    }
   }
 }
