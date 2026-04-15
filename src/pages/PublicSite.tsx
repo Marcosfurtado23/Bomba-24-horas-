@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Flame, Menu, Search, Bell, ChevronRight, Clock, AlertTriangle, TrendingUp, X, PlayCircle, CheckCircle } from 'lucide-react';
+import { Flame, Menu, Search, Bell, ChevronRight, Clock, AlertTriangle, TrendingUp, X, PlayCircle, CheckCircle, Download } from 'lucide-react';
 import { NewsArticle, VideoArticle, TickerItem } from '../types';
 import { db } from '../firebase';
 import { collection, onSnapshot, query, orderBy, addDoc } from 'firebase/firestore';
@@ -56,6 +56,31 @@ export default function PublicSite() {
   const [initialLoad, setInitialLoad] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [showLoadingScreen, setShowLoadingScreen] = useState(true);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        console.log('User accepted the install prompt');
+      }
+      setDeferredPrompt(null);
+    }
+  };
 
   const categories = ['Início', 'Política', 'Economia', 'Polícia', 'Esportes', 'Famosos'];
 
@@ -243,6 +268,14 @@ export default function PublicSite() {
             </nav>
 
             <div className="flex items-center gap-2">
+              {deferredPrompt && (
+                <button 
+                  onClick={handleInstallClick}
+                  className="hidden sm:flex items-center gap-1 bg-yellow-400 hover:bg-yellow-500 text-red-900 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider transition-colors"
+                >
+                  <Download size={14} /> Instalar App
+                </button>
+              )}
               {isSearchOpen && (
                 <input 
                   type="text" 
@@ -288,6 +321,17 @@ export default function PublicSite() {
                 {cat}
               </button>
             ))}
+            {deferredPrompt && (
+              <button 
+                onClick={() => {
+                  handleInstallClick();
+                  setIsMobileMenuOpen(false);
+                }}
+                className="text-left py-3 text-yellow-400 font-black flex items-center gap-2"
+              >
+                <Download size={18} /> INSTALAR APLICATIVO
+              </button>
+            )}
           </nav>
         </div>
       )}
