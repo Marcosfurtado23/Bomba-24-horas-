@@ -54,6 +54,37 @@ export default function PublicSite() {
   const [videos, setVideos] = useState<VideoArticle[]>([]);
   const [tickerItems, setTickerItems] = useState<TickerItem[]>([]);
   const [initialLoad, setInitialLoad] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [showLoadingScreen, setShowLoadingScreen] = useState(true);
+  const [isFadingOut, setIsFadingOut] = useState(false);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLoadingProgress(prev => {
+        if (prev >= 90) {
+          clearInterval(interval);
+          return 90;
+        }
+        return prev + Math.floor(Math.random() * 15) + 5;
+      });
+    }, 150);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (!initialLoad) {
+      setLoadingProgress(100);
+      const timer1 = setTimeout(() => {
+        setIsFadingOut(true);
+        const timer2 = setTimeout(() => {
+          setShowLoadingScreen(false);
+        }, 500);
+        return () => clearTimeout(timer2);
+      }, 800);
+      return () => clearTimeout(timer1);
+    }
+  }, [initialLoad]);
 
   const categories = ['Início', 'Política', 'Economia', 'Polícia', 'Esportes', 'Famosos'];
 
@@ -146,6 +177,32 @@ export default function PublicSite() {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
+      {showLoadingScreen && (
+        <div className={`fixed inset-0 z-[200] bg-red-600 flex flex-col items-center justify-center transition-opacity duration-500 ${isFadingOut ? 'opacity-0' : 'opacity-100'}`}>
+          <div className="bg-white p-4 rounded-2xl mb-8 animate-bounce shadow-xl">
+            <Flame size={64} className="text-red-600 fill-red-600" />
+          </div>
+          <div className="flex flex-col items-center mb-12">
+            <span className="text-5xl font-black tracking-tighter uppercase italic text-white mb-1 drop-shadow-md">Bomba</span>
+            <span className="text-xl font-bold tracking-widest uppercase text-red-200 drop-shadow-sm">24 Horas</span>
+          </div>
+          <div className="w-64 sm:w-80 h-3 bg-red-800 rounded-full overflow-hidden shadow-inner relative">
+            <div 
+              className="h-full bg-yellow-400 transition-all duration-300 ease-out relative"
+              style={{ width: `${loadingProgress}%` }}
+            >
+              <div className="absolute top-0 left-0 right-0 bottom-0 bg-white/20 animate-pulse"></div>
+            </div>
+          </div>
+          <div className="mt-4 text-yellow-400 font-black text-xl tracking-wider">
+            {loadingProgress}%
+          </div>
+          <div className="mt-6 text-red-200 text-sm font-medium animate-pulse">
+            Carregando as últimas notícias...
+          </div>
+        </div>
+      )}
+
       {/* Top Bar - Breaking News Ticker */}
       <div className="bg-red-700 text-white px-4 py-2 text-sm flex items-center justify-between">
         <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap w-full">
