@@ -209,9 +209,9 @@ export default function Dashboard() {
         text,
         createdAt: new Date().toISOString()
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding ticker item:", error);
-      alert("Erro ao adicionar notícia ao letreiro.");
+      alert("Erro ao adicionar notícia ao letreiro: " + (error.message || error));
     }
   };
 
