@@ -54,8 +54,25 @@ export default function PublicSite() {
   const [videos, setVideos] = useState<VideoArticle[]>([]);
   const [tickerItems, setTickerItems] = useState<TickerItem[]>([]);
   const [initialLoad, setInitialLoad] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [showLoadingScreen, setShowLoadingScreen] = useState(true);
 
   const categories = ['Início', 'Política', 'Economia', 'Polícia', 'Esportes', 'Famosos'];
+
+  useEffect(() => {
+    if (initialLoad) {
+      const interval = setInterval(() => {
+        setLoadingProgress(prev => {
+          if (prev >= 90) return prev;
+          return prev + Math.floor(Math.random() * 10) + 5;
+        });
+      }, 200);
+      return () => clearInterval(interval);
+    } else {
+      setLoadingProgress(100);
+      setTimeout(() => setShowLoadingScreen(false), 500);
+    }
+  }, [initialLoad]);
 
   useEffect(() => {
     const articlesQuery = query(collection(db, 'articles'), orderBy('createdAt', 'desc'));
@@ -146,6 +163,24 @@ export default function PublicSite() {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
+      {/* Loading Screen */}
+      {showLoadingScreen && (
+        <div className={`fixed inset-0 z-[9999] bg-red-600 flex flex-col items-center justify-center transition-opacity duration-500 ${loadingProgress === 100 ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+          <div className="flex flex-col items-center max-w-xs w-full px-6">
+            <div className="w-24 h-24 bg-white rounded-2xl p-2 mb-8 shadow-2xl animate-pulse">
+              <img src="/icon.png" alt="Bomba 24h" className="w-full h-full object-contain" />
+            </div>
+            <div className="w-full bg-red-800 rounded-full h-2.5 mb-2 overflow-hidden">
+              <div 
+                className="bg-white h-2.5 rounded-full transition-all duration-300 ease-out" 
+                style={{ width: `${loadingProgress}%` }}
+              ></div>
+            </div>
+            <p className="text-white font-bold text-sm uppercase tracking-widest">{loadingProgress}%</p>
+          </div>
+        </div>
+      )}
+
       {/* Top Bar - Breaking News Ticker */}
       <div className="bg-red-700 text-white px-4 py-2 text-sm flex items-center justify-between">
         <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap w-full">
