@@ -3,8 +3,8 @@ self.addEventListener('push', function(event) {
   const title = data.title || 'Bomba 24 Horas';
   const options = {
     body: data.body || 'Nova notícia urgente!',
-    icon: '/logo-192.png',
-    badge: '/logo-192.png',
+    icon: '/icon.svg',
+    badge: '/icon.svg',
     data: { url: data.url || '/' }
   };
   event.waitUntil(self.registration.showNotification(title, options));

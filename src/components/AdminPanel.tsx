@@ -33,26 +33,6 @@ export default function AdminPanel({
 
   const isDay = currentTime.getHours() >= 6 && currentTime.getHours() < 18;
 
-  const testNotification = async () => {
-    if (!('serviceWorker' in navigator)) {
-      alert('Seu navegador não suporta Service Workers.');
-      return;
-    }
-    try {
-      const reg = await navigator.serviceWorker.ready;
-      await reg.showNotification('Bomba 24 horas: NOTÍCIA URGENTE DE TESTE', {
-        body: 'Leia agora! (Isso é apenas um teste)',
-        icon: '/logo-192.png',
-        badge: '/logo-192.png',
-        data: { url: '/' }
-      });
-      alert('Notificação de teste enviada! Verifique seu celular/computador.');
-    } catch (error) {
-      console.error('Erro ao testar notificação:', error);
-      alert('Erro ao testar notificação. Certifique-se de que você permitiu as notificações no sininho da página inicial.');
-    }
-  };
-
   // News State
   const [bulkQuantity, setBulkQuantity] = useState(1);
   const [bulkArticles, setBulkArticles] = useState([{title: '', summary: '', content: '', category: 'Urgente', imageUrl: '', videoUrl: ''}]);
@@ -243,32 +223,24 @@ export default function AdminPanel({
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-          <div className="flex gap-4 overflow-x-auto pb-2 sm:pb-0 w-full sm:w-auto">
-            <button 
-              onClick={() => setActiveTab('news')}
-              className={`px-6 py-3 font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'news' ? 'bg-red-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}
-            >
-              <ImageIcon size={20} /> Notícias
-            </button>
-            <button 
-              onClick={() => setActiveTab('videos')}
-              className={`px-6 py-3 font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'videos' ? 'bg-red-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}
-            >
-              <Video size={20} /> Vídeos
-            </button>
-            <button 
-              onClick={() => setActiveTab('ticker')}
-              className={`px-6 py-3 font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'ticker' ? 'bg-red-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}
-            >
-              <Type size={20} /> Letreiro
-            </button>
-          </div>
+        <div className="flex gap-4 mb-8">
           <button 
-            onClick={testNotification}
-            className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold rounded-lg shadow-sm transition-colors flex items-center gap-2 whitespace-nowrap"
+            onClick={() => setActiveTab('news')}
+            className={`px-6 py-3 font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center gap-2 ${activeTab === 'news' ? 'bg-red-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}
           >
-            🔔 Testar Notificação
+            <ImageIcon size={20} /> Notícias
+          </button>
+          <button 
+            onClick={() => setActiveTab('videos')}
+            className={`px-6 py-3 font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center gap-2 ${activeTab === 'videos' ? 'bg-red-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}
+          >
+            <Video size={20} /> Vídeos
+          </button>
+          <button 
+            onClick={() => setActiveTab('ticker')}
+            className={`px-6 py-3 font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center gap-2 ${activeTab === 'ticker' ? 'bg-red-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}
+          >
+            <Type size={20} /> Letreiro
           </button>
         </div>
 

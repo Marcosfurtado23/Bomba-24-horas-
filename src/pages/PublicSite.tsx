@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Flame, Menu, Search, Bell, ChevronRight, Clock, AlertTriangle, TrendingUp, X, PlayCircle, CheckCircle, Download } from 'lucide-react';
+import { Flame, Menu, Search, Bell, ChevronRight, Clock, AlertTriangle, TrendingUp, X, PlayCircle, CheckCircle } from 'lucide-react';
 import { NewsArticle, VideoArticle, TickerItem } from '../types';
 import { db } from '../firebase';
 import { collection, onSnapshot, query, orderBy, addDoc } from 'firebase/firestore';
@@ -54,50 +54,8 @@ export default function PublicSite() {
   const [videos, setVideos] = useState<VideoArticle[]>([]);
   const [tickerItems, setTickerItems] = useState<TickerItem[]>([]);
   const [initialLoad, setInitialLoad] = useState(true);
-  const [loadingProgress, setLoadingProgress] = useState(0);
-  const [showLoadingScreen, setShowLoadingScreen] = useState(true);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
-
-  const handleInstallClick = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        console.log('User accepted the install prompt');
-      }
-      setDeferredPrompt(null);
-    }
-  };
 
   const categories = ['Início', 'Política', 'Economia', 'Polícia', 'Esportes', 'Famosos'];
-
-  useEffect(() => {
-    if (initialLoad) {
-      const interval = setInterval(() => {
-        setLoadingProgress(prev => {
-          if (prev >= 90) return prev;
-          return prev + Math.floor(Math.random() * 10) + 5;
-        });
-      }, 200);
-      return () => clearInterval(interval);
-    } else {
-      setLoadingProgress(100);
-      setTimeout(() => setShowLoadingScreen(false), 500);
-    }
-  }, [initialLoad]);
 
   useEffect(() => {
     const articlesQuery = query(collection(db, 'articles'), orderBy('createdAt', 'desc'));
@@ -188,24 +146,6 @@ export default function PublicSite() {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
-      {/* Loading Screen */}
-      {showLoadingScreen && (
-        <div className={`fixed inset-0 z-[9999] bg-red-600 flex flex-col items-center justify-center transition-opacity duration-500 ${loadingProgress === 100 ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-          <div className="flex flex-col items-center max-w-xs w-full px-6">
-            <div className="w-24 h-24 bg-white rounded-2xl p-2 mb-8 shadow-2xl animate-pulse">
-              <img src="/logo.png" alt="Bomba 24h" className="w-full h-full object-contain" />
-            </div>
-            <div className="w-full bg-red-800 rounded-full h-2.5 mb-2 overflow-hidden">
-              <div 
-                className="bg-white h-2.5 rounded-full transition-all duration-300 ease-out" 
-                style={{ width: `${loadingProgress}%` }}
-              ></div>
-            </div>
-            <p className="text-white font-bold text-sm uppercase tracking-widest">{loadingProgress}%</p>
-          </div>
-        </div>
-      )}
-
       {/* Top Bar - Breaking News Ticker */}
       <div className="bg-red-700 text-white px-4 py-2 text-sm flex items-center justify-between">
         <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap w-full">
@@ -268,14 +208,6 @@ export default function PublicSite() {
             </nav>
 
             <div className="flex items-center gap-2">
-              {deferredPrompt && (
-                <button 
-                  onClick={handleInstallClick}
-                  className="hidden sm:flex items-center gap-1 bg-yellow-400 hover:bg-yellow-500 text-red-900 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider transition-colors"
-                >
-                  <Download size={14} /> Instalar App
-                </button>
-              )}
               {isSearchOpen && (
                 <input 
                   type="text" 
@@ -321,17 +253,6 @@ export default function PublicSite() {
                 {cat}
               </button>
             ))}
-            {deferredPrompt && (
-              <button 
-                onClick={() => {
-                  handleInstallClick();
-                  setIsMobileMenuOpen(false);
-                }}
-                className="text-left py-3 text-yellow-400 font-black flex items-center gap-2"
-              >
-                <Download size={18} /> INSTALAR APLICATIVO
-              </button>
-            )}
           </nav>
         </div>
       )}
